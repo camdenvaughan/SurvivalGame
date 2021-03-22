@@ -1,0 +1,67 @@
+[
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\LineTracer.cpp",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\LineTracer.h",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\PickupBase.cpp",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\PickupBase.h",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\PlayerStatsComponent.cpp",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\PlayerStatsComponent.h",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\Survival.Build.cs",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\Survival.cpp",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\Survival.h",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\SurvivalCharacter.cpp",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\SurvivalCharacter.h",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\SurvivalGameMode.cpp",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	},
+	{
+		"file": "D:\\\\Unreal Projects\\\\Survival\\\\Source\\\\Survival\\\\SurvivalGameMode.h",
+		"command": "cl.exe @\"D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival\\Survival.178.rsp\"",
+		"directory": "D:\\EpicLibrary\\UE_4.26\\Engine\\Source"
+	}
+]
