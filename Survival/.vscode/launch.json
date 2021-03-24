@@ -5,7 +5,7 @@
 			"name": "Survival (Debug)",
 			"request": "launch",
 			"preLaunchTask": "Survival Win64 Debug Build",
-			"program": "D:\\Unreal Projects\\Survival\\Binaries\\Win64\\UE4-Win64-Debug.exe",
+			"program": "D:\\Unreal Projects\\SurvivalGame\\Survival\\Binaries\\Win64\\UE4-Win64-Debug.exe",
 			"args": [
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
@@ -18,7 +18,7 @@
 			"name": "Survival (DebugGame)",
 			"request": "launch",
 			"preLaunchTask": "Survival Win64 DebugGame Build",
-			"program": "D:\\Unreal Projects\\Survival\\Binaries\\Win64\\UE4-Win64-DebugGame.exe",
+			"program": "D:\\Unreal Projects\\SurvivalGame\\Survival\\Binaries\\Win64\\UE4-Win64-DebugGame.exe",
 			"args": [
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
@@ -31,7 +31,7 @@
 			"name": "Survival (Development)",
 			"request": "launch",
 			"preLaunchTask": "Survival Win64 Development Build",
-			"program": "D:\\Unreal Projects\\Survival\\Binaries\\Win64\\UE4.exe",
+			"program": "D:\\Unreal Projects\\SurvivalGame\\Survival\\Binaries\\Win64\\UE4.exe",
 			"args": [
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
@@ -44,7 +44,7 @@
 			"name": "Survival (Shipping)",
 			"request": "launch",
 			"preLaunchTask": "Survival Win64 Shipping Build",
-			"program": "D:\\Unreal Projects\\Survival\\Binaries\\Win64\\UE4-Win64-Shipping.exe",
+			"program": "D:\\Unreal Projects\\SurvivalGame\\Survival\\Binaries\\Win64\\UE4-Win64-Shipping.exe",
 			"args": [
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
@@ -57,7 +57,7 @@
 			"name": "Survival (Test)",
 			"request": "launch",
 			"preLaunchTask": "Survival Win64 Test Build",
-			"program": "D:\\Unreal Projects\\Survival\\Binaries\\Win64\\UE4-Win64-Test.exe",
+			"program": "D:\\Unreal Projects\\SurvivalGame\\Survival\\Binaries\\Win64\\UE4-Win64-Test.exe",
 			"args": [
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
@@ -72,7 +72,7 @@
 			"preLaunchTask": "SurvivalEditor Win64 Debug Build",
 			"program": "D:\\EpicLibrary\\UE_4.26\\Engine\\Binaries\\Win64\\UE4Editor-Win64-Debug.exe",
 			"args": [
-				"D:\\Unreal Projects\\Survival\\Survival.uproject"
+				"D:\\Unreal Projects\\SurvivalGame\\Survival\\Survival.uproject"
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
 			"stopAtEntry": false,
@@ -86,7 +86,7 @@
 			"preLaunchTask": "SurvivalEditor Win64 DebugGame Build",
 			"program": "D:\\EpicLibrary\\UE_4.26\\Engine\\Binaries\\Win64\\UE4Editor-Win64-DebugGame.exe",
 			"args": [
-				"D:\\Unreal Projects\\Survival\\Survival.uproject"
+				"D:\\Unreal Projects\\SurvivalGame\\Survival\\Survival.uproject"
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
 			"stopAtEntry": false,
@@ -100,7 +100,7 @@
 			"preLaunchTask": "SurvivalEditor Win64 Development Build",
 			"program": "D:\\EpicLibrary\\UE_4.26\\Engine\\Binaries\\Win64\\UE4Editor.exe",
 			"args": [
-				"D:\\Unreal Projects\\Survival\\Survival.uproject"
+				"D:\\Unreal Projects\\SurvivalGame\\Survival\\Survival.uproject"
 			],
 			"cwd": "D:\\EpicLibrary\\UE_4.26",
 			"stopAtEntry": false,
@@ -117,7 +117,7 @@
 			"args": [
 				"-projectfiles",
 				"-vscode",
-				"-project=\"D:\\Unreal Projects\\Survival\\Survival.uproject\"",
+				"-project=\"D:\\Unreal Projects\\SurvivalGame\\Survival\\Survival.uproject\"",
 				"-game",
 				"-engine"
 			],

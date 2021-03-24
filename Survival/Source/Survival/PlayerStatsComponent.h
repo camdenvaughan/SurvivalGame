@@ -12,35 +12,55 @@ class SURVIVAL_API UPlayerStatsComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:	// Constructor
+
 	// Sets default values for this component's properties
 	UPlayerStatsComponent();
 
-protected:
-
-	UPROPERTY(Replicated)
-	float Hunger;
-
-	UPROPERTY(EditAnywhere, Category = "S|Player Stats")
-	float HungerDecrementValue;
-
-	UPROPERTY(Replicated)
-	float Thirst;
-	UPROPERTY(EditAnywhere, Category = "S|Player Stats")
-	float ThirstDecrementValue;
-
-	UPROPERTY(Replicated)
-	float Stamina;
+protected: // Protected Variables
 
 	UPROPERTY(Replicated)
 	float Health;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float MaxHealth;
 
+	UPROPERTY(Replicated)
+	float Hunger;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float MaxHunger;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float HungerDecrementValue;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float HungerDamageValue;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float HungerHealingThreshold;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float FullHungerHealingAmount;
+
+	UPROPERTY(Replicated)
+	float Thirst;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float MaxThirst;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float ThirstDecrementValue;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float ThirstDamageValue;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float ThirstHealingThreshold;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float FullThirstHealingAmount;
+
+	UPROPERTY(Replicated)
+	float Stamina;
+	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
+	float MaxStamina;
 
 	FTimerHandle HungerAndThirstTimer;
 
 	FTimerHandle StaminaRegeneration;
 
-protected:
+protected: // Protected Functions
+
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
@@ -75,7 +95,7 @@ protected:
 
 	void RegenerateStamina();
 
-public:	
+public:	// Public Functions
 	void AddHealth(float Value);
 	void AddHunger(float Value);
 	void AddThirst(float Value);
@@ -89,4 +109,7 @@ public:
 	float GetThirst();
 	float GetStamina();
 	void ControlSprintingTimer(bool bIsSprinting);
+
+private:
+	void SetAllStats();
 };

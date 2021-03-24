@@ -10,11 +10,12 @@
 
 #include "SurvivalGameMode.h"
 #include "PlayerStatsComponent.h"
-#include "TimerManager.h"
 #include "LineTracer.h"
 #include "PickupBase.h"
+#include "Inventory.h"
 
 #include "Components/SkeletalMeshComponent.h"
+#include "TimerManager.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ASurvivalCharacter
@@ -50,11 +51,12 @@ ASurvivalCharacter::ASurvivalCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
+	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inheritesd from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 
 	PlayerStatsComp = CreateDefaultSubobject<UPlayerStatsComponent>(TEXT("Player Stats Component"));
 	LineTraceComp = CreateDefaultSubobject<ULineTracer>(TEXT("Line Tracer"));
+	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory Component"));
 
 	bIsSprinting = false;
 }
@@ -94,6 +96,11 @@ void ASurvivalCharacter::BeginPlay()
 
 	GetWorld()->GetTimerManager().SetTimer(SprintingHandle, this, &ASurvivalCharacter::HandleSprinting, 1.f, true);
 
+}
+
+UInventory* ASurvivalCharacter::GetInventoryComp() 
+{
+	return InventoryComp;
 }
 
 
@@ -221,7 +228,10 @@ void ASurvivalCharacter::ServerInteract_Implementation()
 		{
 			if (APickupBase* Pickup = Cast<APickupBase>(Actor))
 			{
-				Pickup->UseItem(this);
+				if (InventoryComp->AddItem(Pickup))
+				{
+
+				}
 			}
 		}
 	}	
@@ -270,6 +280,7 @@ void ASurvivalCharacter::Die()
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
+		InventoryComp->DropAllInventory();
 		MultiDie();
 		ASurvivalGameMode* GM = Cast<ASurvivalGameMode>(GetWorld()->GetAuthGameMode());
 		if (GM)
@@ -277,7 +288,7 @@ void ASurvivalCharacter::Die()
 			GM->Respawn(GetController());
 		}
 		// Start destory timer to remove actor from world
-		GetWorld()->GetTimerManager().SetTimer(DestroyHandle, this, &ASurvivalCharacter::CallDestroy, 5.f, false);
+		GetWorld()->GetTimerManager().SetTimer(DestroyHandle, this, &ASurvivalCharacter::CallDestroy, 10.f, false);
 	}
 }
 

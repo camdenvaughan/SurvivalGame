@@ -12,16 +12,17 @@ class SURVIVAL_API ULineTracer : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:	// Constructor
+
 	// Sets default values for this component's properties
 	ULineTracer();
 
-protected:
+protected: // Protected Functions
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
+public:	// Public Functions
+
 	FHitResult LineTraceSingle(FVector Start, FVector End);
-	FHitResult LineTraceSingle(FVector Start, FVector End, bool ShowDebugLine);
-		
+	FHitResult LineTraceSingle(FVector Start, FVector End, bool ShowDebugLine);	
 };

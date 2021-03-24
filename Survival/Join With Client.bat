@@ -1,1 +1,0 @@
-"D:\EpicLibrary\UE_4.26\Engine\Binaries\Win64\UE4Editor.exe" "D:\Unreal Projects\Survival\Survival.uproject" 192.168.1.31 -game -ResX=800 -ResY=900 -WinX=0 -WinY=20 -log -nosteam

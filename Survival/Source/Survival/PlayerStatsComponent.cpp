@@ -2,19 +2,26 @@
 
 
 #include "PlayerStatsComponent.h"
+#include "SurvivalCharacter.h"
+
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 
 // Sets default values for this component's properties
 UPlayerStatsComponent::UPlayerStatsComponent()
 {
-	Health = 50.f;
-	Hunger = 100.f;
+	MaxHealth = 100.f;
+	MaxHunger = 100.f;
 	HungerDecrementValue = 0.3f;
-	Thirst = 100.f;
+	HungerDamageValue = 5.f;
+	HungerHealingThreshold = 95.f;
+	FullHungerHealingAmount = 2.f;
+	MaxThirst = 100.f;
 	ThirstDecrementValue = 0.5f;
-
-	Stamina = 100.f;
+	ThirstDamageValue = 5.f;
+	ThirstHealingThreshold = 95.f;
+	FullThirstHealingAmount = 2.f;
+	MaxStamina = 100.f;
 }
 
 
@@ -23,7 +30,7 @@ void UPlayerStatsComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	SetIsReplicated(true);
-
+	SetAllStats();
 	if (GetOwnerRole() == ROLE_Authority)
 	{
 		// Decrement Hunger and Thirst
@@ -33,14 +40,22 @@ void UPlayerStatsComponent::BeginPlay()
 	}
 }
 
+void UPlayerStatsComponent::SetAllStats() 
+{
+	Health = MaxHealth;
+	Hunger = MaxHunger;
+	Thirst = MaxThirst;
+	Stamina = MaxStamina;
+}
+
 void UPlayerStatsComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UPlayerStatsComponent, Health);
-	DOREPLIFETIME(UPlayerStatsComponent, Hunger);
-	DOREPLIFETIME(UPlayerStatsComponent, Thirst);
-	DOREPLIFETIME(UPlayerStatsComponent, Stamina);
+	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Health, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Hunger, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Thirst, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Stamina, COND_OwnerOnly);
 
 }
 
@@ -152,6 +167,7 @@ void UPlayerStatsComponent::ControlSprintingTimer(bool bIsSprinting)
 	}
 }
 
+
 // Adding Funcitons
 //
 //
@@ -159,8 +175,8 @@ void UPlayerStatsComponent::AddHealth(float Value)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
-		if (Health + Value > 100.f)
-			Health = 100.f;
+		if (Health + Value > MaxHealth)
+			Health = MaxHealth;
 		else
 			Health += Value;
 	}
@@ -170,8 +186,8 @@ void UPlayerStatsComponent::AddHunger(float Value)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
-		if (Hunger + Value > 100.f)
-			Hunger = 100.f;
+		if (Hunger + Value > MaxHunger)
+			Hunger = MaxHunger;
 		else
 			Hunger += Value;
 	}
@@ -181,8 +197,8 @@ void UPlayerStatsComponent::AddThirst(float Value)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
-		if (Thirst + Value > 100.f)
-			Thirst = 100.f;
+		if (Thirst + Value > MaxThirst)
+			Thirst = MaxThirst;
 		else
 			Thirst += Value;
 	}
@@ -192,9 +208,9 @@ void UPlayerStatsComponent::RegenerateStamina()
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
-		if (Stamina >= 100)
+		if (Stamina >= MaxStamina)
 		{
-			Stamina = 100.f;
+			Stamina = MaxStamina;
 		}
 		else
 		{
@@ -234,6 +250,18 @@ void UPlayerStatsComponent::LowerHunger(float Value)
 	else
 	{
 		Hunger -= Value;
+		if (Hunger <= 0.f)
+		{
+			Hunger = 0.f;
+			if (ASurvivalCharacter* Character = Cast<ASurvivalCharacter>(GetOwner()))
+			{
+				Character->TakeDamage(HungerDamageValue, FDamageEvent(), Character->GetController(), Character);
+			}
+		}
+		else if (Hunger >= HungerHealingThreshold)
+		{
+			AddHealth(FullHungerHealingAmount);
+		}
 	}
 }
 
@@ -246,6 +274,18 @@ void UPlayerStatsComponent::LowerThirst(float Value)
 	else
 	{
 		Thirst -= Value;
+		if (Thirst <= 0.f)
+		{
+			Thirst = 0.f;
+			if (ASurvivalCharacter* Character = Cast<ASurvivalCharacter>(GetOwner()))
+			{
+				Character->TakeDamage(ThirstDamageValue, FDamageEvent(), Character->GetController(), Character);
+			}
+		}
+		else if (Thirst >= ThirstHealingThreshold)
+		{
+			AddHealth(FullThirstHealingAmount);
+		}
 	}
 }
 

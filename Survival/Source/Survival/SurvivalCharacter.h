@@ -18,7 +18,7 @@ class ASurvivalCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
-public:
+public: // Default Public
 	ASurvivalCharacter();
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
@@ -28,12 +28,11 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
-
 	
-protected:
-
+protected: // Protected Variables
 
 	class ULineTracer* LineTraceComp;
+	class UInventory* InventoryComp;
 
 	bool bIsSprinting;
 
@@ -43,7 +42,8 @@ protected:
 	UFUNCTION(BlueprintPure)
 	FString ReturnPlayerStats();
 
-protected:
+protected: // Default Protected
+
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
 
@@ -66,12 +66,15 @@ protected:
 	 */
 	void LookUpAtRate(float Rate);
 
-protected:
+protected: // Protected Functions
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
 
 	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintPure)
+	class UInventory* GetInventoryComp();
 
 	void HandleSprinting();
 
@@ -99,13 +102,13 @@ protected:
 	void MultiDie_Implementation();
 
 	void CallDestroy();
-public:
+public: // Public Functions
+
 	class UPlayerStatsComponent* PlayerStatsComp;
 
-public:
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
 
-public:
+public: // Default Public
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/

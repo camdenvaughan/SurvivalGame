@@ -6,12 +6,18 @@
 #include "SurvivalCharacter.h"
 #include "PlayerStatsComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/Texture2D.h"
 
 // Sets default values
 APickupBase::APickupBase()
 {
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh Comp"));
 	RootComponent = MeshComp;
+
+	Icon = CreateDefaultSubobject<UTexture2D>(TEXT("Icon Image"));
+
+	bReplicates = true;
+	SetReplicateMovement(true);
 	
 	IncreaseAmount = 30;
 }
@@ -20,10 +26,20 @@ APickupBase::APickupBase()
 void APickupBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if (GetLocalRole() == ROLE_Authority)
-	{
-		SetReplicates(true);
-	}
+}
+
+void APickupBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(APickupBase, bIsObjectPickedUp);
+
+}
+
+void APickupBase::OnRep_PickedUp() 
+{
+	this->MeshComp->SetHiddenInGame(bIsObjectPickedUp);
+	this->SetActorEnableCollision(!bIsObjectPickedUp);
 }
 
 void APickupBase::UseItem(ASurvivalCharacter* Player) 
@@ -48,6 +64,28 @@ void APickupBase::UseItem(ASurvivalCharacter* Player)
 			Player->PlayerStatsComp->AddHealth(IncreaseAmount);
 		}
 		Destroy();
+	}
+}
+
+void APickupBase::IsInInventory(bool bIsInInventory) 
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		bIsObjectPickedUp = bIsInInventory;
+		OnRep_PickedUp();
+	}
+}
+
+UTexture2D* APickupBase::GetIcon() 
+{
+	if (Icon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Icon Image Loaded : %s"), *Icon->GetPathName());
+		return Icon;
+	}
+	else
+	{
+		return nullptr;
 	}
 }
 

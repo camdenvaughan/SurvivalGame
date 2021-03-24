@@ -20,22 +20,44 @@ class SURVIVAL_API APickupBase : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:	// Constuctor
+
 	// Sets default values for this actor's properties
 	APickupBase();
-protected:
+	
+protected: // Protected Variables
+
 	UPROPERTY(EditAnywhere)
 	class UStaticMeshComponent* MeshComp;
 
 	UPROPERTY(EditAnywhere)
+	class UTexture2D* Icon;
+
+	UPROPERTY(EditAnywhere)
 	float IncreaseAmount;
 
-	UPROPERTY(EditAnywhere, Category = "Enums")
+	UPROPERTY(EditAnywhere, Category = "Survival|Enums")
 	EPickupType PickupType;
-protected:
+
+	UPROPERTY(ReplicatedUsing = OnRep_PickedUp)
+	bool bIsObjectPickedUp;
+
+	UFUNCTION()
+	void OnRep_PickedUp();
+
+protected: // Protected Functions
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
+
+public:	// Public Functions
+
 	void UseItem(class ASurvivalCharacter* Player);
+
+	void IsInInventory(bool bIsInInventory);
+
+	UFUNCTION(BlueprintPure)
+	class UTexture2D* GetIcon();
 };

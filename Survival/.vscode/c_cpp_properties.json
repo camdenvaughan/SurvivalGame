@@ -3,7 +3,7 @@
         {
             "name": "SurvivalEditor Editor Win64 Development (Survival)",
             "intelliSenseMode": "msvc-x64",
-            "compileCommands": "D:\\Unreal Projects\\Survival\\.vscode\\compileCommands_Survival.json",
+            "compileCommands": "D:\\Unreal Projects\\SurvivalGame\\Survival\\.vscode\\compileCommands_Survival.json",
             "cStandard": "c17",
             "cppStandard": "c++17"
         }
