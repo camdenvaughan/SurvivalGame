@@ -19,6 +19,7 @@ protected: // Protected Variables
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* StaticMesh;
 
+	UPROPERTY(EditAnywhere)
 	class UInventory* InventoryComp;
 
 protected: // Protected Functions
@@ -26,7 +27,7 @@ protected: // Protected Functions
 	virtual void BeginPlay() override;
 
 public:
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure)
 	class UInventory* GetInventoryComponent();
 
 };

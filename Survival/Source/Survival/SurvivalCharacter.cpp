@@ -15,6 +15,8 @@
 #include "Inventory.h"
 #include "StorageContainer.h"
 
+#include "Blueprint/UserWidget.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 
@@ -60,6 +62,13 @@ ASurvivalCharacter::ASurvivalCharacter()
 	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory Component"));
 
 	bIsSprinting = false;
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> InventoryRef(TEXT("/Game/Blueprints/Hud/WBP_InventoryBase"));
+
+	if (InventoryRef.Class)
+	{
+		InventoryWidgetClass = InventoryRef.Class;
+	}
 }
 
 
@@ -77,7 +86,7 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ASurvivalCharacter::Interact);
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ASurvivalCharacter::Attack);
-
+	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &ASurvivalCharacter::OpenCloseInventory);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ASurvivalCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ASurvivalCharacter::MoveRight);
@@ -213,7 +222,36 @@ void ASurvivalCharacter::Interact()
 		}
 		else if (AStorageContainer* Container = Cast<AStorageContainer>(Actor))
 		{
-			ServerInteract();
+			//ServerInteract();
+			OpenedContainer = Container;
+			OpenCloseInventory();
+		}
+	}
+}
+
+void ASurvivalCharacter::OpenCloseInventory()
+{
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		InventoryWidget->RemoveFromViewport();
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			PlayerController->bShowMouseCursor = false;
+			PlayerController->SetInputMode(FInputModeGameOnly());
+			OpenedContainer = nullptr;
+		}
+	}
+	else
+	{
+		InventoryWidget = CreateWidget<UUserWidget>(GetWorld(), InventoryWidgetClass);
+		if (InventoryWidget)
+		{
+			InventoryWidget->AddToViewport();
+			if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+			{
+				PlayerController->bShowMouseCursor = true;
+				PlayerController->SetInputMode(FInputModeGameAndUI());
+			}
 		}
 	}
 }
@@ -247,10 +285,6 @@ void ASurvivalCharacter::ServerInteract_Implementation()
 				if (UInventory* ContainerInventory = Container->GetInventoryComponent())
 				{
 					TArray<APickupBase*> ContainerItems = ContainerInventory->GetInventoryItems();
-					for (APickupBase* Item : ContainerItems)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Item : %s"), *Item->GetName());
-					}
 				}
 			}
 		}
@@ -332,6 +366,11 @@ void ASurvivalCharacter::MultiDie_Implementation()
 void ASurvivalCharacter::CallDestroy() 
 {
 	Destroy();
+}
+
+AStorageContainer* ASurvivalCharacter::GetOpenedContainer()
+{
+	return OpenedContainer;
 }
 
 float ASurvivalCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) 

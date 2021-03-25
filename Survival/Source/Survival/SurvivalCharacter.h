@@ -32,25 +32,21 @@ public: // Default Public
 protected: // Protected Variables
 
 	class ULineTracer* LineTraceComp;
+
+	UPROPERTY(EditAnywhere)
 	class UInventory* InventoryComp;
+
+	TSubclassOf<class UUserWidget> InventoryWidgetClass;
+
+	UUserWidget* InventoryWidget;
 
 	bool bIsSprinting;
 
 	FTimerHandle SprintingHandle;
 	FTimerHandle DestroyHandle;
 
-	UFUNCTION(BlueprintPure)
-	FString ReturnPlayerStats();
-	UFUNCTION(BlueprintPure)
-    float ReturnHealth() const;
-	UFUNCTION(BlueprintPure)
-	float ReturnStamina() const;
-	UFUNCTION(BlueprintPure)
-	float ReturnHunger() const;
-	UFUNCTION(BlueprintPure)
-	float ReturnThirst() const;
+	class AStorageContainer* OpenedContainer;
 	
-
 protected: // Default Protected
 
 	/** Called for forwards/backward input */
@@ -91,6 +87,8 @@ protected: // Protected Functions
 
 	void Interact();
 
+	void OpenCloseInventory();
+
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerInteract();
 	bool ServerInteract_Validate();
@@ -111,6 +109,20 @@ protected: // Protected Functions
 	void MultiDie_Implementation();
 
 	void CallDestroy();
+
+	UFUNCTION(BlueprintPure)
+	class AStorageContainer* GetOpenedContainer();
+	
+	UFUNCTION(BlueprintPure)
+    FString ReturnPlayerStats();
+    UFUNCTION(BlueprintPure)
+    float ReturnHealth() const;
+    UFUNCTION(BlueprintPure)
+    float ReturnStamina() const;
+    UFUNCTION(BlueprintPure)
+    float ReturnHunger() const;
+    UFUNCTION(BlueprintPure)
+    float ReturnThirst() const;
 public: // Public Functions
 
 	class UPlayerStatsComponent* PlayerStatsComp;

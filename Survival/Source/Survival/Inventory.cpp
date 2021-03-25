@@ -4,6 +4,7 @@
 #include "Inventory.h"
 #include "PickupBase.h"
 #include "SurvivalCharacter.h"
+#include "StorageContainer.h"
 
 #include "Net/UnrealNetwork.h"
 
@@ -30,7 +31,7 @@ void UInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 
-	DOREPLIFETIME_CONDITION(UInventory, Items, COND_OwnerOnly);
+	DOREPLIFETIME(UInventory, Items);
 }
 
 
@@ -38,10 +39,6 @@ bool UInventory::AddItem(APickupBase* Item)
 {
 	Items.Add(Item);
 	Item->IsInInventory(true);
-	for (APickupBase* Pickup: Items)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Item: %s:"), *Pickup->GetName());
-	}
 	return true;
 }
 
@@ -146,23 +143,52 @@ void UInventory::Server_UseItem_Implementation(APickupBase* Item)
 	}
 }
 
+bool UInventory::Server_TransferItem_Validate(APickupBase* Item, AStorageContainer* Container)
+{
+	return CheckIfClientHasItem(Item);
+}
+
+void UInventory::Server_TransferItem_Implementation(APickupBase* Item, AStorageContainer* Container)
+{
+	if (GetOwnerRole() == ROLE_Authority)
+	{
+		if (Container)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("passed Container check"));
+			if (UInventory* CInventory = Container->GetInventoryComponent())
+			{
+				CInventory->AddItem(Item);
+				UE_LOG(LogTemp, Warning, TEXT("Added Item"));
+				RemoveItemFromInventory(Item);
+				UE_LOG(LogTemp, Warning, TEXT("Removed Item"));
+
+			}
+		}
+	}
+}
+
 void UInventory::UseItem(APickupBase* Item)
 {
 	Server_UseItem(Item);
 }
 
+void UInventory::TransferItem(APickupBase* Item, AStorageContainer* Container)
+{
+	Server_TransferItem(Item, Container);
+}
 
-TArray<APickupBase*> UInventory::GetInventoryItems() 
+
+TArray<APickupBase*> UInventory::GetInventoryItems() const
 {
 	return Items;
 }
 
-int32 UInventory::GetCurrentInventoryCount() 
+int32 UInventory::GetCurrentInventoryCount() const
 {
 	return Items.Num() - 1;
 }
 
-int32 UInventory::GetInventorySize()
+int32 UInventory::GetInventorySize() const
 {
 	return InventorySize - 1;
 }

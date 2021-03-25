@@ -78,15 +78,7 @@ void APickupBase::IsInInventory(bool bIsInInventory)
 
 UTexture2D* APickupBase::GetIcon() 
 {
-	if (Icon)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Icon Image Loaded : %s"), *Icon->GetPathName());
 		return Icon;
-	}
-	else
-	{
-		return nullptr;
-	}
 }
 
 
