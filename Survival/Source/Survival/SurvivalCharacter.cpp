@@ -13,6 +13,7 @@
 #include "LineTracer.h"
 #include "PickupBase.h"
 #include "Inventory.h"
+#include "StorageContainer.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
@@ -43,7 +44,7 @@ ASurvivalCharacter::ASurvivalCharacter()
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 300.0f; // The camera follows at this distance behind the character	
+	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
 	// Create a follow camera
@@ -198,13 +199,19 @@ void ASurvivalCharacter::TryToJump()
 
 void ASurvivalCharacter::Interact() 
 {
-	FVector Start = GetMesh()->GetBoneLocation("head");
-	FVector End = Start + FollowCamera->GetForwardVector() * 170.f;
+	FVector Start;
+	FRotator Rotator;
+	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
+	FVector End = Start + FollowCamera->GetForwardVector() * 600.f;
 	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
 
 	if (AActor* Actor = HitResult.GetActor())
 	{
 		if (APickupBase* Pickup = Cast<APickupBase>(Actor))
+		{
+			ServerInteract();
+		}
+		else if (AStorageContainer* Container = Cast<AStorageContainer>(Actor))
 		{
 			ServerInteract();
 		}
@@ -220,8 +227,10 @@ void ASurvivalCharacter::ServerInteract_Implementation()
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		FVector Start = GetMesh()->GetBoneLocation("head");
-		FVector End = Start + FollowCamera->GetForwardVector() * 170.f;
+		FVector Start;
+		FRotator Rotator;
+		GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
+		FVector End = Start + FollowCamera->GetForwardVector() * 600.f;
 		FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
 
 		if (AActor* Actor = HitResult.GetActor())
@@ -230,7 +239,18 @@ void ASurvivalCharacter::ServerInteract_Implementation()
 			{
 				if (InventoryComp->AddItem(Pickup))
 				{
-
+	
+				}
+			}
+			else if (AStorageContainer* Container = Cast<AStorageContainer>(Actor))
+			{
+				if (UInventory* ContainerInventory = Container->GetInventoryComponent())
+				{
+					TArray<APickupBase*> ContainerItems = ContainerInventory->GetInventoryItems();
+					for (APickupBase* Item : ContainerItems)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Item : %s"), *Item->GetName());
+					}
 				}
 			}
 		}
@@ -239,8 +259,10 @@ void ASurvivalCharacter::ServerInteract_Implementation()
 
 void ASurvivalCharacter::Attack() 
 {
-	FVector Start = GetMesh()->GetBoneLocation("head");
-	FVector End = Start + FollowCamera->GetForwardVector() * 500.f;
+	FVector Start;
+	FRotator Rotator;
+	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
+	FVector End = Start + FollowCamera->GetForwardVector() * 750.f;
 	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
 
 	if (AActor* Actor = HitResult.GetActor())
@@ -261,8 +283,10 @@ void ASurvivalCharacter::ServerAttack_Implementation()
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		FVector Start = GetMesh()->GetBoneLocation("head");
-		FVector End = Start + FollowCamera->GetForwardVector() * 500.f;
+		FVector Start;
+		FRotator Rotator;
+		GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
+		FVector End = Start + FollowCamera->GetForwardVector() * 750.f;
 		FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
 
 		if (AActor* Actor = HitResult.GetActor())
@@ -339,4 +363,24 @@ FString ASurvivalCharacter::ReturnPlayerStats()
 	+ ",  Stamina: "
 	+ FString::SanitizeFloat(PlayerStatsComp->GetStamina());
 	return ReturnString;
+}
+
+float ASurvivalCharacter::ReturnHealth() const
+{
+	return PlayerStatsComp->GetHealth() / 100.f;
+}
+
+float ASurvivalCharacter::ReturnStamina() const
+{
+	return PlayerStatsComp->GetStamina() / 100.f;
+}
+
+float ASurvivalCharacter::ReturnHunger() const
+{
+	return PlayerStatsComp->GetHunger() / 100.f;
+}
+
+float ASurvivalCharacter::ReturnThirst() const
+{
+	return PlayerStatsComp->GetThirst() / 100.f;
 }

@@ -22,6 +22,9 @@ protected: // Protected Variables
 	UPROPERTY(Replicated)
 	TArray<class APickupBase*> Items;
 
+	UPROPERTY(EditAnywhere)
+	int32 InventorySize;
+
 protected: // Protected Functions
 
 	// Called when the game starts
@@ -29,19 +32,36 @@ protected: // Protected Functions
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 
-	UFUNCTION(NetMulticast, Reliable, WithValidation)
-	void MultiHideItem(class APickupBase* Item);
-	bool MultiHideItem_Validate(class APickupBase* Item);
-	void MultiHideItem_Implementation(class APickupBase* Item);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_DropItem(class APickupBase* Item);
+	bool Server_DropItem_Validate(class APickupBase* Item);
+	void Server_DropItem_Implementation(class APickupBase* Item);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+    void Server_UseItem(class APickupBase* Item);
+	bool Server_UseItem_Validate(class APickupBase* Item);
+	void Server_UseItem_Implementation(class APickupBase* Item);
+
+	bool CheckIfClientHasItem(class APickupBase* Item);
+	bool RemoveItemFromInventory(class APickupBase* Item);
 
 public: // Public Functions
 	bool AddItem(class APickupBase* Item);
+
+	UFUNCTION(BlueprintCallable)
 	void DropItem(class APickupBase* Item);
 	void DropAllInventory();
+
+	UFUNCTION(BlueprintCallable)
+	void UseItem(class APickupBase* Item);
 
 	UFUNCTION(BlueprintPure)
 	TArray<class APickupBase*> GetInventoryItems();
 
 	UFUNCTION(BlueprintPure)
 	int32 GetCurrentInventoryCount();
+	
+	UFUNCTION(BlueprintPure)
+	int32 GetInventorySize();
 };

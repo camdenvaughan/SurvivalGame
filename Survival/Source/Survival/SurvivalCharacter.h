@@ -41,6 +41,15 @@ protected: // Protected Variables
 
 	UFUNCTION(BlueprintPure)
 	FString ReturnPlayerStats();
+	UFUNCTION(BlueprintPure)
+    float ReturnHealth() const;
+	UFUNCTION(BlueprintPure)
+	float ReturnStamina() const;
+	UFUNCTION(BlueprintPure)
+	float ReturnHunger() const;
+	UFUNCTION(BlueprintPure)
+	float ReturnThirst() const;
+	
 
 protected: // Default Protected
 
