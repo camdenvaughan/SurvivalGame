@@ -69,29 +69,29 @@ protected: // Protected Functions
 	void HandleHungerAndThirst();
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerLowerHealth(float Value);
-	bool ServerLowerHealth_Validate(float Value);
-	void ServerLowerHealth_Implementation(float Value);
+	void Server_LowerHealth(float Value);
+	bool Server_LowerHealth_Validate(float Value);
+	void Server_LowerHealth_Implementation(float Value);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerLowerHunger(float Value);
-	bool ServerLowerHunger_Validate(float Value);
-	void ServerLowerHunger_Implementation(float Value);
+	void Server_LowerHunger(float Value);
+	bool Server_LowerHunger_Validate(float Value);
+	void Server_LowerHunger_Implementation(float Value);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerLowerThirst(float Value);
-	bool ServerLowerThirst_Validate(float Value);
-	void ServerLowerThirst_Implementation(float Value);
+	void Server_LowerThirst(float Value);
+	bool Server_LowerThirst_Validate(float Value);
+	void Server_LowerThirst_Implementation(float Value);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerLowerStamina(float Value);
-	bool ServerLowerStamina_Validate(float Value);
-	void ServerLowerStamina_Implementation(float Value);
+	void Server_LowerStamina(float Value);
+	bool Server_LowerStamina_Validate(float Value);
+	void Server_LowerStamina_Implementation(float Value);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerControlSprintingTimer(bool bIsSprinting);
-	bool ServerControlSprintingTimer_Validate(bool bIsSprinting);
-	void ServerControlSprintingTimer_Implementation(bool bIsSprinting);
+	void Server_ControlSprintingTimer(bool bIsSprinting);
+	bool Server_ControlSprintingTimer_Validate(bool bIsSprinting);
+	void Server_ControlSprintingTimer_Implementation(bool bIsSprinting);
 
 	void RegenerateStamina();
 
@@ -104,10 +104,10 @@ public:	// Public Functions
 	void LowerThirst(float Value);
 	void LowerStamina(float Value);
 
-	float GetHealth();
-	float GetHunger();
-	float GetThirst();
-	float GetStamina();
+	float GetHealth() const;
+	float GetHunger() const;
+	float GetThirst() const;
+	float GetStamina() const;
 	void ControlSprintingTimer(bool bIsSprinting);
 
 private:

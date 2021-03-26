@@ -71,12 +71,12 @@ void UPlayerStatsComponent::HandleHungerAndThirst()
 // Server Health Functions
 //
 //
-bool UPlayerStatsComponent::ServerLowerHealth_Validate(float Value) 
+bool UPlayerStatsComponent::Server_LowerHealth_Validate(float Value) 
 {
 	return true;
 }
 
-void UPlayerStatsComponent::ServerLowerHealth_Implementation(float Value) 
+void UPlayerStatsComponent::Server_LowerHealth_Implementation(float Value) 
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -87,12 +87,12 @@ void UPlayerStatsComponent::ServerLowerHealth_Implementation(float Value)
 // Server Hunger Functions
 //
 //
-bool UPlayerStatsComponent::ServerLowerHunger_Validate(float Value) 
+bool UPlayerStatsComponent::Server_LowerHunger_Validate(float Value) 
 {
 	return true;
 }
 
-void UPlayerStatsComponent::ServerLowerHunger_Implementation(float Value) 
+void UPlayerStatsComponent::Server_LowerHunger_Implementation(float Value) 
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -103,12 +103,12 @@ void UPlayerStatsComponent::ServerLowerHunger_Implementation(float Value)
 // Server Thirst Functions
 //
 //
-bool UPlayerStatsComponent::ServerLowerThirst_Validate(float Value) 
+bool UPlayerStatsComponent::Server_LowerThirst_Validate(float Value) 
 {
 	return true;
 }
 
-void UPlayerStatsComponent::ServerLowerThirst_Implementation(float Value) 
+void UPlayerStatsComponent::Server_LowerThirst_Implementation(float Value) 
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -119,12 +119,12 @@ void UPlayerStatsComponent::ServerLowerThirst_Implementation(float Value)
 // Server Stamina Functions
 //
 //
-bool UPlayerStatsComponent::ServerLowerStamina_Validate(float Value) 
+bool UPlayerStatsComponent::Server_LowerStamina_Validate(float Value) 
 {
 	return true;
 }
 
-void UPlayerStatsComponent::ServerLowerStamina_Implementation(float Value) 
+void UPlayerStatsComponent::Server_LowerStamina_Implementation(float Value) 
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -135,12 +135,12 @@ void UPlayerStatsComponent::ServerLowerStamina_Implementation(float Value)
 // Server Timer Controller
 //
 //
-bool UPlayerStatsComponent::ServerControlSprintingTimer_Validate(bool bIsSprinting) 
+bool UPlayerStatsComponent::Server_ControlSprintingTimer_Validate(bool bIsSprinting) 
 {
 	return true;
 }
 
-void UPlayerStatsComponent::ServerControlSprintingTimer_Implementation(bool bIsSprinting) 
+void UPlayerStatsComponent::Server_ControlSprintingTimer_Implementation(bool bIsSprinting) 
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -152,7 +152,7 @@ void UPlayerStatsComponent::ControlSprintingTimer(bool bIsSprinting)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
-		ServerControlSprintingTimer(bIsSprinting);
+		Server_ControlSprintingTimer(bIsSprinting);
 	}
 	else
 	{
@@ -226,7 +226,7 @@ void UPlayerStatsComponent::LowerHealth(float Value)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
-		ServerLowerHealth(Value);
+		Server_LowerHealth(Value);
 	}
 	else
 	{
@@ -245,7 +245,7 @@ void UPlayerStatsComponent::LowerHunger(float Value)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
-		ServerLowerHunger(Value);
+		Server_LowerHunger(Value);
 	}
 	else
 	{
@@ -269,7 +269,7 @@ void UPlayerStatsComponent::LowerThirst(float Value)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
-		ServerLowerThirst(Value);
+		Server_LowerThirst(Value);
 	}
 	else
 	{
@@ -293,7 +293,7 @@ void UPlayerStatsComponent::LowerStamina(float Value)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
-		ServerLowerStamina(Value);
+		Server_LowerStamina(Value);
 	}
 	else
 	{
@@ -307,22 +307,22 @@ void UPlayerStatsComponent::LowerStamina(float Value)
 // Getter Functions
 //
 //
-float UPlayerStatsComponent::GetHealth() 
+float UPlayerStatsComponent::GetHealth() const
 {
 	return Health;
 }
 
-float UPlayerStatsComponent::GetHunger() 
+float UPlayerStatsComponent::GetHunger() const
 {
 	return Hunger;
 }
 
-float UPlayerStatsComponent::GetThirst() 
+float UPlayerStatsComponent::GetThirst() const
 {
 	return Thirst;
 }
 
-float UPlayerStatsComponent::GetStamina() 
+float UPlayerStatsComponent::GetStamina() const
 {
 	return Stamina;
 }

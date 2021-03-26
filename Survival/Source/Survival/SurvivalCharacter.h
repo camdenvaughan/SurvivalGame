@@ -31,6 +31,7 @@ public: // Default Public
 	
 protected: // Protected Variables
 
+	UPROPERTY(VisibleAnywhere)
 	class ULineTracer* LineTraceComp;
 
 	UPROPERTY(EditAnywhere)
@@ -38,6 +39,7 @@ protected: // Protected Variables
 
 	TSubclassOf<class UUserWidget> InventoryWidgetClass;
 
+	UPROPERTY(VisibleAnywhere)
 	UUserWidget* InventoryWidget;
 
 	bool bIsSprinting;
@@ -45,6 +47,7 @@ protected: // Protected Variables
 	FTimerHandle SprintingHandle;
 	FTimerHandle DestroyHandle;
 
+	UPROPERTY(ReplicatedUsing = OnRep_OpenCloseInventory)
 	class AStorageContainer* OpenedContainer;
 	
 protected: // Default Protected
@@ -78,9 +81,6 @@ protected: // Protected Functions
 
 	virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintPure)
-	class UInventory* GetInventoryComp();
-
 	void HandleSprinting();
 
 	void TryToJump();
@@ -89,32 +89,38 @@ protected: // Protected Functions
 
 	void OpenCloseInventory();
 
+	UFUNCTION()
+	void OnRep_OpenCloseInventory();
+
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerInteract();
-	bool ServerInteract_Validate();
-	void ServerInteract_Implementation();
+	void Server_Interact();
+	bool Server_Interact_Validate();
+	void Server_Interact_Implementation();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_InventoryClose();
+	bool Server_InventoryClose_Validate();
+	void Server_InventoryClose_Implementation();
 
 	void Attack();
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerAttack();
-	bool ServerAttack_Validate();
-	void ServerAttack_Implementation();
+	void Server_Attack();
+	bool Server_Attack_Validate();
+	void Server_Attack_Implementation();
 
 	void Die();
 
 	UFUNCTION(NetMulticast, Reliable, WithValidation)
-	void MultiDie();
-	bool MultiDie_Validate();
-	void MultiDie_Implementation();
+	void Multi_Die();
+	bool Multi_Die_Validate();
+	void Multi_Die_Implementation();
 
 	void CallDestroy();
 
+
 	UFUNCTION(BlueprintPure)
-	class AStorageContainer* GetOpenedContainer();
-	
-	UFUNCTION(BlueprintPure)
-    FString ReturnPlayerStats();
+    FString ReturnPlayerStats() const;
     UFUNCTION(BlueprintPure)
     float ReturnHealth() const;
     UFUNCTION(BlueprintPure)
@@ -123,13 +129,21 @@ protected: // Protected Functions
     float ReturnHunger() const;
     UFUNCTION(BlueprintPure)
     float ReturnThirst() const;
+
 public: // Public Functions
 
+	UPROPERTY(EditAnywhere)
 	class UPlayerStatsComponent* PlayerStatsComp;
 
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
 
+	UFUNCTION(BlueprintPure)
+    class UInventory* GetInventoryComponent() const;
+	UFUNCTION(BlueprintPure)
+    class AStorageContainer* GetOpenedContainer() const;
+
 public: // Default Public
+	
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/

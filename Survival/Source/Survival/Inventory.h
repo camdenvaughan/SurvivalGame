@@ -44,9 +44,9 @@ protected: // Protected Functions
 	void Server_UseItem_Implementation(class APickupBase* Item);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_TransferItem(class APickupBase* Item, class AStorageContainer* Container);
-	bool Server_TransferItem_Validate(class APickupBase* Item, class AStorageContainer* Container);
-	void Server_TransferItem_Implementation(class APickupBase* Item, class AStorageContainer* Container);
+	void Server_TransferItem(class APickupBase* Item, AActor* ContainerActor);
+	bool Server_TransferItem_Validate(class APickupBase* Item, AActor* ContainerActor);
+	void Server_TransferItem_Implementation(class APickupBase* Item, AActor* ContainerActor);
 	
 	bool CheckIfClientHasItem(class APickupBase* Item);
 	bool RemoveItemFromInventory(class APickupBase* Item);
@@ -62,7 +62,12 @@ public: // Public Functions
 	void UseItem(class APickupBase* Item);
 
 	UFUNCTION(BlueprintCallable)
-	void TransferItem(class APickupBase* Item, class AStorageContainer* Container);
+	void TransferItem(class APickupBase* Item, AActor* ContainerActor);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, WithValidation)
+	void Server_ReceiveItem(class APickupBase* Item);
+	bool Server_ReceiveItem_Validate(class APickupBase* Item);
+	void Server_ReceiveItem_Implementation(class APickupBase* Item);
 
 	UFUNCTION(BlueprintPure)
 	TArray<class APickupBase*> GetInventoryItems() const;

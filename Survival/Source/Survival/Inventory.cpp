@@ -143,26 +143,34 @@ void UInventory::Server_UseItem_Implementation(APickupBase* Item)
 	}
 }
 
-bool UInventory::Server_TransferItem_Validate(APickupBase* Item, AStorageContainer* Container)
+bool UInventory::Server_TransferItem_Validate(APickupBase* Item, AActor* Container)
 {
 	return CheckIfClientHasItem(Item);
 }
 
-void UInventory::Server_TransferItem_Implementation(APickupBase* Item, AStorageContainer* Container)
+void UInventory::Server_TransferItem_Implementation(APickupBase* Item, AActor* ContainerActor)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
-		if (Container)
+		if (ContainerActor)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("passed Container check"));
-			if (UInventory* CInventory = Container->GetInventoryComponent())
+			if (AStorageContainer* Container = Cast<AStorageContainer>(ContainerActor))
 			{
-				CInventory->AddItem(Item);
-				UE_LOG(LogTemp, Warning, TEXT("Added Item"));
-				RemoveItemFromInventory(Item);
-				UE_LOG(LogTemp, Warning, TEXT("Removed Item"));
-
+				if (UInventory* CInventory = Container->GetInventoryComponent())
+				{
+					CInventory->AddItem(Item);
+					RemoveItemFromInventory(Item);
+				}
 			}
+			else if (ASurvivalCharacter* Character = Cast<ASurvivalCharacter>(ContainerActor))
+			{
+				if (UInventory* CInventory = Character->GetInventoryComponent())
+				{
+					CInventory->AddItem(Item);
+					RemoveItemFromInventory(Item);
+				}
+			}
+
 		}
 	}
 }
@@ -172,9 +180,26 @@ void UInventory::UseItem(APickupBase* Item)
 	Server_UseItem(Item);
 }
 
-void UInventory::TransferItem(APickupBase* Item, AStorageContainer* Container)
+void UInventory::TransferItem(APickupBase* Item, AActor* ContainerActor)
 {
-	Server_TransferItem(Item, Container);
+	Server_TransferItem(Item, ContainerActor);
+}
+
+bool UInventory::Server_ReceiveItem_Validate(APickupBase* Item)
+{
+	if (Item) return true;
+	else return false;
+}
+
+void UInventory::Server_ReceiveItem_Implementation(APickupBase* Item)
+{
+	if (ASurvivalCharacter* SurvivalCharacter = Cast<ASurvivalCharacter>(GetOwner()))
+	{
+		if (AStorageContainer* Container = SurvivalCharacter->GetOpenedContainer())
+		{
+			Container->GetInventoryComponent()->TransferItem(Item,SurvivalCharacter);
+		}
+	}
 }
 
 

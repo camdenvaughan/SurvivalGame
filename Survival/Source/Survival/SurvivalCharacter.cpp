@@ -19,6 +19,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ASurvivalCharacter
@@ -62,7 +63,6 @@ ASurvivalCharacter::ASurvivalCharacter()
 	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory Component"));
 
 	bIsSprinting = false;
-
 	static ConstructorHelpers::FClassFinder<UUserWidget> InventoryRef(TEXT("/Game/Blueprints/Hud/WBP_InventoryBase"));
 
 	if (InventoryRef.Class)
@@ -108,9 +108,11 @@ void ASurvivalCharacter::BeginPlay()
 
 }
 
-UInventory* ASurvivalCharacter::GetInventoryComp() 
+void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	return InventoryComp;
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ASurvivalCharacter, OpenedContainer, COND_OwnerOnly);
 }
 
 
@@ -218,13 +220,11 @@ void ASurvivalCharacter::Interact()
 	{
 		if (APickupBase* Pickup = Cast<APickupBase>(Actor))
 		{
-			ServerInteract();
+			Server_Interact();
 		}
 		else if (AStorageContainer* Container = Cast<AStorageContainer>(Actor))
 		{
-			//ServerInteract();
-			OpenedContainer = Container;
-			OpenCloseInventory();
+			Server_Interact();
 		}
 	}
 }
@@ -238,7 +238,10 @@ void ASurvivalCharacter::OpenCloseInventory()
 		{
 			PlayerController->bShowMouseCursor = false;
 			PlayerController->SetInputMode(FInputModeGameOnly());
-			OpenedContainer = nullptr;
+		}
+		if (OpenedContainer)
+		{
+			Server_InventoryClose();
 		}
 	}
 	else
@@ -256,12 +259,42 @@ void ASurvivalCharacter::OpenCloseInventory()
 	}
 }
 
-bool ASurvivalCharacter::ServerInteract_Validate() 
+void ASurvivalCharacter::OnRep_OpenCloseInventory()
+{
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		InventoryWidget->RemoveFromViewport();
+	}
+	if (!OpenedContainer)
+	{
+		InventoryWidget->RemoveFromViewport();
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			PlayerController->bShowMouseCursor = false;
+			PlayerController->SetInputMode(FInputModeGameOnly());
+		}
+	}
+	else
+	{
+		InventoryWidget = CreateWidget<UUserWidget>(GetWorld(), InventoryWidgetClass);
+		if (InventoryWidget)
+		{
+			InventoryWidget->AddToViewport();
+			if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+			{
+				PlayerController->bShowMouseCursor = true;
+				PlayerController->SetInputMode(FInputModeGameAndUI());
+			}
+		}
+	}
+}
+
+bool ASurvivalCharacter::Server_Interact_Validate() 
 {
 	return true;
 }
 
-void ASurvivalCharacter::ServerInteract_Implementation() 
+void ASurvivalCharacter::Server_Interact_Implementation() 
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
@@ -282,13 +315,36 @@ void ASurvivalCharacter::ServerInteract_Implementation()
 			}
 			else if (AStorageContainer* Container = Cast<AStorageContainer>(Actor))
 			{
-				if (UInventory* ContainerInventory = Container->GetInventoryComponent())
+				if (Container->IsChestOpen() && !OpenedContainer) return;
+				
+				bool bOpenChest = false;
+				if (OpenedContainer)
 				{
-					TArray<APickupBase*> ContainerItems = ContainerInventory->GetInventoryItems();
+					OpenedContainer = nullptr;
 				}
+				else
+				{
+					OpenedContainer = Container;
+					bOpenChest = true;
+				}
+				Container->OpenChest(bOpenChest);	
 			}
 		}
 	}	
+}
+
+bool ASurvivalCharacter::Server_InventoryClose_Validate()
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_InventoryClose_Implementation()
+{
+	if (OpenedContainer)
+	{
+		OpenedContainer->OpenChest(false);
+	}
+	OpenedContainer = nullptr;
 }
 
 void ASurvivalCharacter::Attack() 
@@ -303,17 +359,17 @@ void ASurvivalCharacter::Attack()
 	{
 		if (ASurvivalCharacter* Player = Cast<ASurvivalCharacter>(Actor))
 		{
-			ServerAttack();
+			Server_Attack();
 		}
 	}
 }
 
-bool ASurvivalCharacter::ServerAttack_Validate() 
+bool ASurvivalCharacter::Server_Attack_Validate() 
 {
 	return true;
 }
 
-void ASurvivalCharacter::ServerAttack_Implementation() 
+void ASurvivalCharacter::Server_Attack_Implementation() 
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
@@ -338,8 +394,9 @@ void ASurvivalCharacter::Die()
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
+		Server_InventoryClose();
 		InventoryComp->DropAllInventory();
-		MultiDie();
+		Multi_Die();
 		ASurvivalGameMode* GM = Cast<ASurvivalGameMode>(GetWorld()->GetAuthGameMode());
 		if (GM)
 		{
@@ -350,12 +407,12 @@ void ASurvivalCharacter::Die()
 	}
 }
 
-bool ASurvivalCharacter::MultiDie_Validate() 
+bool ASurvivalCharacter::Multi_Die_Validate() 
 {
 	return true;
 }
 
-void ASurvivalCharacter::MultiDie_Implementation() 
+void ASurvivalCharacter::Multi_Die_Implementation() 
 {
 	this->GetCapsuleComponent()->DestroyComponent();
 	this->GetCharacterMovement()->DisableMovement();
@@ -368,7 +425,7 @@ void ASurvivalCharacter::CallDestroy()
 	Destroy();
 }
 
-AStorageContainer* ASurvivalCharacter::GetOpenedContainer()
+AStorageContainer* ASurvivalCharacter::GetOpenedContainer() const
 {
 	return OpenedContainer;
 }
@@ -391,7 +448,12 @@ float ASurvivalCharacter::TakeDamage(float Damage, struct FDamageEvent const& Da
 	return ActualDamage;
 }
 
-FString ASurvivalCharacter::ReturnPlayerStats() 
+UInventory* ASurvivalCharacter::GetInventoryComponent() const
+{
+	return InventoryComp;
+}
+
+FString ASurvivalCharacter::ReturnPlayerStats() const
 {
 	FString ReturnString = "Health: "
 	+ FString::SanitizeFloat(PlayerStatsComp->GetHealth())
