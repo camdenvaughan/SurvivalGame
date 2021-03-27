@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Public/Weapons/WeaponBase.h"
+
 #include "SurvivalCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -49,6 +51,18 @@ protected: // Protected Variables
 
 	UPROPERTY(ReplicatedUsing = OnRep_OpenCloseInventory)
 	class AStorageContainer* OpenedContainer;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AWeaponBase> WeaponClass;
+
+	UPROPERTY(ReplicatedUsing = OnRep_WeaponInteracted)
+	class AWeaponBase* Weapon;
+
+	UPROPERTY(ReplicatedUsing = OnRep_SetAiming)
+	bool bIsAiming;
+
+	void SetIsAiming();
+	void SetIsNotAiming();
 	
 protected: // Default Protected
 
@@ -63,15 +77,15 @@ protected: // Default Protected
 	void StopSprinting();
 
 	/** 
-	 * Called via input to turn at a given rate. 
-	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
-	 */
+	* Called via input to turn at a given rate. 
+	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
+	*/
 	void TurnAtRate(float Rate);
 
 	/**
-	 * Called via input to turn look up/down at a given rate. 
-	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
-	 */
+	* Called via input to turn look up/down at a given rate. 
+	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
+	*/
 	void LookUpAtRate(float Rate);
 
 protected: // Protected Functions
@@ -90,29 +104,40 @@ protected: // Protected Functions
 	void OpenCloseInventory();
 
 	UFUNCTION()
-	void OnRep_OpenCloseInventory();
+    void OnRep_OpenCloseInventory();
+
+	UFUNCTION()
+    void OnRep_WeaponInteracted();
+
+	UFUNCTION()
+    void OnRep_SetAiming();
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_Interact();
+    void Server_Interact();
 	bool Server_Interact_Validate();
 	void Server_Interact_Implementation();
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_InventoryClose();
+    void Server_InventoryClose();
 	bool Server_InventoryClose_Validate();
 	void Server_InventoryClose_Implementation();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+    void Server_Aim(bool bSetShouldAim);
+	bool Server_Aim_Validate(bool bSetShouldAim);
+	void Server_Aim_Implementation(bool bSetShouldAim);
 
 	void Attack();
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_Attack();
-	bool Server_Attack_Validate();
-	void Server_Attack_Implementation();
+    void Server_Attack(FHitResult HitResult);
+	bool Server_Attack_Validate(FHitResult HitResult);
+	void Server_Attack_Implementation(FHitResult HitResult);
 
 	void Die();
 
 	UFUNCTION(NetMulticast, Reliable, WithValidation)
-	void Multi_Die();
+    void Multi_Die();
 	bool Multi_Die_Validate();
 	void Multi_Die_Implementation();
 
@@ -120,14 +145,16 @@ protected: // Protected Functions
 
 
 	UFUNCTION(BlueprintPure)
+    bool GetPlayerHasWeapon() const;
+	UFUNCTION(BlueprintPure)
     FString ReturnPlayerStats() const;
-    UFUNCTION(BlueprintPure)
+	UFUNCTION(BlueprintPure)
     float ReturnHealth() const;
-    UFUNCTION(BlueprintPure)
+	UFUNCTION(BlueprintPure)
     float ReturnStamina() const;
-    UFUNCTION(BlueprintPure)
+	UFUNCTION(BlueprintPure)
     float ReturnHunger() const;
-    UFUNCTION(BlueprintPure)
+	UFUNCTION(BlueprintPure)
     float ReturnThirst() const;
 
 public: // Public Functions
@@ -136,6 +163,7 @@ public: // Public Functions
 	class UPlayerStatsComponent* PlayerStatsComp;
 
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
+
 
 	UFUNCTION(BlueprintPure)
     class UInventory* GetInventoryComponent() const;
@@ -148,6 +176,4 @@ public: // Default Public
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	
 };
-

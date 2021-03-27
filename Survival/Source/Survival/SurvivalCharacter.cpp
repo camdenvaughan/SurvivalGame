@@ -14,6 +14,7 @@
 #include "PickupBase.h"
 #include "Inventory.h"
 #include "StorageContainer.h"
+#include "Survival/Public/Weapons/WeaponBase.h"
 
 #include "Blueprint/UserWidget.h"
 #include "UObject/ConstructorHelpers.h"
@@ -63,6 +64,7 @@ ASurvivalCharacter::ASurvivalCharacter()
 	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory Component"));
 
 	bIsSprinting = false;
+	bIsAiming = false;
 	static ConstructorHelpers::FClassFinder<UUserWidget> InventoryRef(TEXT("/Game/Blueprints/Hud/WBP_InventoryBase"));
 
 	if (InventoryRef.Class)
@@ -88,6 +90,9 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ASurvivalCharacter::Attack);
 	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &ASurvivalCharacter::OpenCloseInventory);
 
+	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &ASurvivalCharacter::SetIsAiming);
+	PlayerInputComponent->BindAction("Aiming", IE_Released, this, &ASurvivalCharacter::SetIsNotAiming);
+	
 	PlayerInputComponent->BindAxis("MoveForward", this, &ASurvivalCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ASurvivalCharacter::MoveRight);
 
@@ -104,8 +109,26 @@ void ASurvivalCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorld()->GetTimerManager().SetTimer(SprintingHandle, this, &ASurvivalCharacter::HandleSprinting, 1.f, true);
+	/*
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.bNoFail = true;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+	FTransform WeaponTransform;
+	WeaponTransform.SetLocation(FVector::ZeroVector);
+	WeaponTransform.SetRotation(FQuat(FRotator::ZeroRotator));
+
+	if (WeaponClass)
+	{
+		Weapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, WeaponTransform, SpawnParams);
+		if (Weapon)
+		{
+			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_hand_r"));
+		}
+	}
+	*/
+
+	GetWorld()->GetTimerManager().SetTimer(SprintingHandle, this, &ASurvivalCharacter::HandleSprinting, 1.f, true);
 }
 
 void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -113,6 +136,8 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(ASurvivalCharacter, OpenedContainer, COND_OwnerOnly);
+	DOREPLIFETIME(ASurvivalCharacter, Weapon);
+	DOREPLIFETIME(ASurvivalCharacter, bIsAiming);
 }
 
 
@@ -126,6 +151,22 @@ void ASurvivalCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void ASurvivalCharacter::SetIsAiming()
+{
+	if (Weapon)
+	{
+		Server_Aim(true);
+	}
+}
+
+void ASurvivalCharacter::SetIsNotAiming()
+{
+	if (Weapon)
+	{
+		Server_Aim(false);
+	}
 }
 
 void ASurvivalCharacter::MoveForward(float Value)
@@ -218,12 +259,17 @@ void ASurvivalCharacter::Interact()
 
 	if (AActor* Actor = HitResult.GetActor())
 	{
-		if (APickupBase* Pickup = Cast<APickupBase>(Actor))
+		if (Cast<APickupBase>(Actor))
 		{
 			Server_Interact();
 		}
-		else if (AStorageContainer* Container = Cast<AStorageContainer>(Actor))
+		else if (Cast<AStorageContainer>(Actor))
 		{
+			Server_Interact();
+		}
+		else if (Cast<AWeaponBase>(Actor))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Hit Weapon"))
 			Server_Interact();
 		}
 	}
@@ -289,6 +335,24 @@ void ASurvivalCharacter::OnRep_OpenCloseInventory()
 	}
 }
 
+void ASurvivalCharacter::OnRep_WeaponInteracted()
+{
+	if (Weapon)
+	{
+		Weapon->SetActorEnableCollision(false);
+		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_hand_r"));
+	}
+	else // after drop
+	{
+		
+	}
+}
+
+void ASurvivalCharacter::OnRep_SetAiming()
+{
+	bUseControllerRotationYaw = bIsAiming;
+}
+
 bool ASurvivalCharacter::Server_Interact_Validate() 
 {
 	return true;
@@ -329,6 +393,12 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 				}
 				Container->OpenChest(bOpenChest);	
 			}
+			else if (AWeaponBase* HitWeapon = Cast<AWeaponBase>(Actor))
+			{
+				Weapon = HitWeapon;
+				Weapon->SetOwner(this);
+				OnRep_WeaponInteracted();
+			}
 		}
 	}	
 }
@@ -347,32 +417,23 @@ void ASurvivalCharacter::Server_InventoryClose_Implementation()
 	OpenedContainer = nullptr;
 }
 
-void ASurvivalCharacter::Attack() 
-{
-	FVector Start;
-	FRotator Rotator;
-	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
-	FVector End = Start + FollowCamera->GetForwardVector() * 750.f;
-	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
-
-	if (AActor* Actor = HitResult.GetActor())
-	{
-		if (ASurvivalCharacter* Player = Cast<ASurvivalCharacter>(Actor))
-		{
-			Server_Attack();
-		}
-	}
-}
-
-bool ASurvivalCharacter::Server_Attack_Validate() 
+bool ASurvivalCharacter::Server_Aim_Validate(bool bSetShouldAim)
 {
 	return true;
 }
 
-void ASurvivalCharacter::Server_Attack_Implementation() 
+void ASurvivalCharacter::Server_Aim_Implementation(bool bSetShouldAim)
 {
-	if (GetLocalRole() == ROLE_Authority)
+	bIsAiming = bSetShouldAim;
+	OnRep_SetAiming();
+}
+
+void ASurvivalCharacter::Attack() 
+{
+	if (Weapon)
 	{
+		Server_Attack(Weapon->Fire());
+	/*
 		FVector Start;
 		FRotator Rotator;
 		GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
@@ -383,12 +444,41 @@ void ASurvivalCharacter::Server_Attack_Implementation()
 		{
 			if (ASurvivalCharacter* Player = Cast<ASurvivalCharacter>(Actor))
 			{
-				float TempDamage = 20.f;
-				Player->TakeDamage(TempDamage, FDamageEvent(), GetController(), this);
+				Server_Attack();
 			}
+		} */
+	}
+}
+bool ASurvivalCharacter::Server_Attack_Validate(FHitResult HitResult)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_Attack_Implementation(FHitResult HitResult)
+{
+	if (GetLocalRole() == ROLE_Authority && Weapon)
+	{
+		Weapon->Fire(HitResult);
+		/*
+		FVector Start;
+		FRotator Rotator;
+		GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
+		FVector End = Start + FollowCamera->GetForwardVector() * 750.f;
+		FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
+
+		if (AActor* Actor = HitResult.GetActor())
+		{
+		if (ASurvivalCharacter* Player = Cast<ASurvivalCharacter>(Actor))
+		{
+		float TempDamage = 20.f;
+		Player->TakeDamage(TempDamage, FDamageEvent(), GetController(), this);
 		}
+		} */
 	}	
 }
+
+
+
 
 void ASurvivalCharacter::Die() 
 {
@@ -423,6 +513,14 @@ void ASurvivalCharacter::Multi_Die_Implementation()
 void ASurvivalCharacter::CallDestroy() 
 {
 	Destroy();
+}
+
+bool ASurvivalCharacter::GetPlayerHasWeapon() const
+{
+	if (Weapon)
+		return true;
+	else
+		return false;
 }
 
 AStorageContainer* ASurvivalCharacter::GetOpenedContainer() const
