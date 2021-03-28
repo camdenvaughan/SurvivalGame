@@ -51,10 +51,11 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	bool IsValidShot(FHitResult ClientHitResult, FHitResult ServerHitResult);
 public:
 
 	void SetupWeapon(FName WeaponName);
 	FHitResult Fire();
-	FHitResult Fire(FHitResult ServerHitResult);
+	FHitResult Fire(FHitResult ClientHitResult);
 
 };

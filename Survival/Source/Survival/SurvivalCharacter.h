@@ -76,6 +76,10 @@ protected: // Default Protected
 
 	void StopSprinting();
 
+	void StartCrouch();
+
+	void StopCrouch();
+
 	/** 
 	* Called via input to turn at a given rate. 
 	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
@@ -147,15 +151,15 @@ protected: // Protected Functions
 	UFUNCTION(BlueprintPure)
     bool GetPlayerHasWeapon() const;
 	UFUNCTION(BlueprintPure)
-    FString ReturnPlayerStats() const;
+    FString GetPlayerStats() const;
 	UFUNCTION(BlueprintPure)
-    float ReturnHealth() const;
+    float GetHealth() const;
 	UFUNCTION(BlueprintPure)
-    float ReturnStamina() const;
+    float GetStamina() const;
 	UFUNCTION(BlueprintPure)
-    float ReturnHunger() const;
+    float GetHunger() const;
 	UFUNCTION(BlueprintPure)
-    float ReturnThirst() const;
+    float GetThirst() const;
 
 public: // Public Functions
 
