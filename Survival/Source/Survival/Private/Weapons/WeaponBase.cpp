@@ -4,8 +4,10 @@
 #include "Survival/Public/Weapons/WeaponBase.h"
 #include "Survival/LineTracer.h"
 #include "Survival/SurvivalCharacter.h"
+#include "Survival/PlayerStatsComponent.h"
 
 #include "Components/SkeletalMeshComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AWeaponBase::AWeaponBase()
@@ -16,6 +18,8 @@ AWeaponBase::AWeaponBase()
 	LineTracerComp = CreateDefaultSubobject<ULineTracer>(TEXT("Line Tracer"));
 	DefaultWeaponName = FName("");
 }
+
+
 
 // Called when the game starts or when spawned
 void AWeaponBase::BeginPlay()
@@ -28,7 +32,12 @@ void AWeaponBase::BeginPlay()
 	}
 }
 
+void AWeaponBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME_CONDITION(AWeaponBase, MagazineAmmoCount, COND_OwnerOnly);
+}
 
 void AWeaponBase::SetupWeapon(FName WeaponName)
 {
@@ -39,6 +48,10 @@ void AWeaponBase::SetupWeapon(FName WeaponName)
 		if (WeaponData)
 		{
 			SkeletalMeshComp->SetSkeletalMesh(WeaponData->WeaponMesh);
+			MagazineAmmoCount = WeaponData->MagazineSize;
+			MaxMagazineSize = WeaponData->MagazineSize;
+			AmmoType = WeaponData->AmmoType;
+			ReloadTime = WeaponData->ReloadTime;
 		}
 	}
 }
@@ -47,10 +60,13 @@ FHitResult AWeaponBase::Fire()
 {
 	if (GetLocalRole() < ROLE_Authority)
 	{
-		if (WeaponData)
+		if (MagazineAmmoCount <= 0)
 		{
-			SkeletalMeshComp->PlayAnimation(WeaponData->FireAnimation, false);
+			// Play empty clip sound
+			return FHitResult();
 		}
+		// Play Sound / Muzzle Flash
+		
 		FVector StartLocation = SkeletalMeshComp->GetSocketLocation(FName("s_muzzle"));
 		FRotator Rotation = SkeletalMeshComp->GetSocketRotation(FName("s_muzzle"));
 		FVector EndLocation = StartLocation + Rotation.Vector() * 4000.f;
@@ -61,10 +77,9 @@ FHitResult AWeaponBase::Fire()
 	{
 		return FHitResult();
 	}
-
 }
 
-bool AWeaponBase::IsValidShot(FHitResult ClientHitResult, FHitResult ServerHitResult)
+bool AWeaponBase::IsValidShot(FHitResult ClientHitResult, FHitResult ServerHitResult) const
 {
 	if (ServerHitResult.GetActor() == nullptr)
 	{
@@ -77,7 +92,6 @@ bool AWeaponBase::IsValidShot(FHitResult ClientHitResult, FHitResult ServerHitRe
 
 	if (ClientStart >= ServerStart - 15.0f && ClientStart <= ServerStart + 15.0f && ClientEnd >= ServerEnd - 15.0f && ClientEnd <= ServerEnd + 15.0f)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Shot Was Valid"));
 		return true;
 	}
 	else
@@ -92,6 +106,12 @@ FHitResult AWeaponBase::Fire(FHitResult ClientHitResult)
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
+		if (MagazineAmmoCount <= 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Out Of Ammo"));
+			return FHitResult();
+		}
+		--MagazineAmmoCount;
 		FVector StartLocation = SkeletalMeshComp->GetSocketLocation(FName("s_muzzle"));
 		
 		if (AActor* HitActor = ClientHitResult.GetActor())
@@ -120,5 +140,46 @@ FHitResult AWeaponBase::Fire(FHitResult ClientHitResult)
 			
 		}
 	}
+	UE_LOG(LogTemp, Warning, TEXT("Magazine has %i shots left"), MagazineAmmoCount);
 	return FHitResult();
+}
+
+/*
+bool AWeaponBase::Server_Reload_Validate(int32 Ammo)
+{
+	return true;
+}
+
+void AWeaponBase::Server_Reload_Implementation(int32 Ammo)
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		Reload();
+	}
+} */
+
+void AWeaponBase::Reload(UPlayerStatsComponent* PlayerStatsComp)
+{
+	if (GetLocalRole() < ROLE_Authority)
+	{
+
+	}
+	else
+	{
+	    if (MagazineAmmoCount != MaxMagazineSize)
+	    {
+		    MagazineAmmoCount += PlayerStatsComp->SubtractReloadAmmo(MaxMagazineSize - MagazineAmmoCount, AmmoType);
+            UE_LOG(LogTemp, Warning, TEXT("Mag Capacity: %i"), MagazineAmmoCount);
+	    }
+	}
+}
+
+EAmmoType AWeaponBase::GetAmmoType() const
+{
+	return AmmoType;
+}
+
+float AWeaponBase::GetReloadTime() const
+{
+	return ReloadTime;
 }

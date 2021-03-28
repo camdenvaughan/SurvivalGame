@@ -15,12 +15,14 @@
 #include "Inventory.h"
 #include "StorageContainer.h"
 #include "Survival/Public/Weapons/WeaponBase.h"
+#include "Survival/Public/Weapons/AmmoBase.h"
 
 #include "Blueprint/UserWidget.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
+#include "Weapons/AmmoBase.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ASurvivalCharacter
@@ -89,6 +91,7 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &ASurvivalCharacter::StopCrouch);
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ASurvivalCharacter::Interact);
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASurvivalCharacter::Reload);
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ASurvivalCharacter::Attack);
 	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &ASurvivalCharacter::OpenCloseInventory);
 
@@ -122,6 +125,7 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_CONDITION(ASurvivalCharacter, OpenedContainer, COND_OwnerOnly);
 	DOREPLIFETIME(ASurvivalCharacter, Weapon);
 	DOREPLIFETIME(ASurvivalCharacter, bIsAiming);
+	DOREPLIFETIME(ASurvivalCharacter, bIsReloading);
 }
 
 // Input Functions
@@ -142,6 +146,7 @@ void ASurvivalCharacter::StartSprinting()
 	{
 		bIsSprinting = true;
 		PlayerStatsComp->ControlSprintingTimer(true);
+		Server_CancelReload();
 	}
 	else if (PlayerStatsComp->GetStamina() <= 0.f)
 	{
@@ -193,9 +198,25 @@ void ASurvivalCharacter::Interact()
 		}
 		else if (Cast<AWeaponBase>(Actor))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Hit Weapon"))
 			Server_Interact();
 		}
+		else if (Cast<AAmmoBase>(Actor))
+		{
+			Server_Interact();
+		}
+	}
+}
+
+void ASurvivalCharacter::Reload()
+{
+	if (GetLocalRole() < ROLE_Authority)
+	{
+		Server_Reload();
+	}
+	else if (GetLocalRole() == ROLE_Authority)
+	{
+		Weapon->Reload(PlayerStatsComp);
+		bIsReloading = false;
 	}
 }
 
@@ -203,6 +224,7 @@ void ASurvivalCharacter::Attack()
 {
 	if (Weapon)
 	{
+		Server_CancelReload();
 		Server_Attack(Weapon->Fire());
 	}
 }
@@ -401,6 +423,11 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 				Weapon->SetOwner(this);
 				OnRep_WeaponInteracted();
 			}
+			else if (AAmmoBase* HitAmmo = Cast <AAmmoBase>(Actor))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Server Hit Ammo"));
+				HitAmmo->InteractedWith(PlayerStatsComp);
+			}
 		}
 	}	
 }
@@ -408,6 +435,46 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 bool ASurvivalCharacter::Server_InventoryClose_Validate()
 {
 	return true;
+}
+
+bool ASurvivalCharacter::Server_Reload_Validate()
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_Reload_Implementation()
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		if (Weapon)
+		{
+			if (Weapon->GetAmmoType() == EAmmoType::E_AssaultAmmo)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Starting Reload"))
+				bIsReloading = true;
+				GetWorld()->GetTimerManager().SetTimer(ReloadHandle, this, &ASurvivalCharacter::Reload, Weapon->GetReloadTime(), false);
+				//Weapon->Reload(PlayerStatsComp);
+			}
+		}
+	}
+}
+
+bool ASurvivalCharacter::Server_CancelReload_Validate()
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_CancelReload_Implementation()
+{
+	if (Weapon)
+	{
+		if (bIsReloading)
+		{
+			bIsReloading = false;
+			GetWorld()->GetTimerManager().ClearTimer(ReloadHandle);
+			UE_LOG(LogTemp, Warning, TEXT("ReloadCancelled"));
+		}
+	}
 }
 
 void ASurvivalCharacter::Server_InventoryClose_Implementation()
@@ -535,7 +602,9 @@ FString ASurvivalCharacter::GetPlayerStats() const
 	+ ",  Thirst: " 
 	+ FString::SanitizeFloat(PlayerStatsComp->GetThirst())
 	+ ",  Stamina: "
-	+ FString::SanitizeFloat(PlayerStatsComp->GetStamina());
+	+ FString::SanitizeFloat(PlayerStatsComp->GetStamina())
+	+ ", Assault Ammo: "
+	+ FString::FromInt(PlayerStatsComp->GetAssaultAmmo());
 	return ReturnString;
 }
 

@@ -47,6 +47,7 @@ protected: // Protected Variables
 	bool bIsSprinting;
 
 	FTimerHandle SprintingHandle;
+	FTimerHandle ReloadHandle;
 	FTimerHandle DestroyHandle;
 
 	UPROPERTY(ReplicatedUsing = OnRep_OpenCloseInventory)
@@ -60,6 +61,9 @@ protected: // Protected Variables
 
 	UPROPERTY(ReplicatedUsing = OnRep_SetAiming)
 	bool bIsAiming;
+
+	UPROPERTY(Replicated)
+	bool bIsReloading;
 
 	void SetIsAiming();
 	void SetIsNotAiming();
@@ -105,6 +109,8 @@ protected: // Protected Functions
 
 	void Interact();
 
+	void Reload();
+
 	void OpenCloseInventory();
 
 	UFUNCTION()
@@ -120,6 +126,16 @@ protected: // Protected Functions
     void Server_Interact();
 	bool Server_Interact_Validate();
 	void Server_Interact_Implementation();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_Reload();
+	bool Server_Reload_Validate();
+	void Server_Reload_Implementation();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_CancelReload();
+	bool Server_CancelReload_Validate();
+	void Server_CancelReload_Implementation();
 
 	UFUNCTION(Server, Reliable, WithValidation)
     void Server_InventoryClose();

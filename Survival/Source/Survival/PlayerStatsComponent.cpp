@@ -3,6 +3,7 @@
 
 #include "PlayerStatsComponent.h"
 #include "SurvivalCharacter.h"
+#include "Survival/Public/Weapons/AmmoBase.h"
 
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
@@ -22,6 +23,7 @@ UPlayerStatsComponent::UPlayerStatsComponent()
 	ThirstHealingThreshold = 95.f;
 	FullThirstHealingAmount = 2.f;
 	MaxStamina = 100.f;
+	AssaultAmmo = 0.f;
 }
 
 
@@ -56,6 +58,7 @@ void UPlayerStatsComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Hunger, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Thirst, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Stamina, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, AssaultAmmo, COND_OwnerOnly);
 
 }
 
@@ -132,6 +135,10 @@ void UPlayerStatsComponent::Server_LowerStamina_Implementation(float Value)
 	}
 }
 
+// Server Ammo Functions
+//
+//
+
 // Server Timer Controller
 //
 //
@@ -201,6 +208,17 @@ void UPlayerStatsComponent::AddThirst(float Value)
 			Thirst = MaxThirst;
 		else
 			Thirst += Value;
+	}
+}
+
+void UPlayerStatsComponent::AddAmmo(int32 Value, EAmmoType AmmoType)
+{
+	if (GetOwnerRole() == ROLE_Authority)
+	{
+		if (AmmoType == EAmmoType::E_AssaultAmmo)
+		{
+			AssaultAmmo += Value;
+		}
 	}
 }
 
@@ -304,6 +322,40 @@ void UPlayerStatsComponent::LowerStamina(float Value)
 	}
 }
 
+// returns the size of new reloaded magazine
+int32 UPlayerStatsComponent::SubtractReloadAmmo(int32 MagazineSize, EAmmoType AmmoType)
+{
+	int32 ReloadedMagazineCapacity = 0;
+	if (GetOwnerRole() < ROLE_Authority)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("This is the client"))
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Magazine Size is %i"), MagazineSize);
+		if (AmmoType == EAmmoType::E_AssaultAmmo)
+		{
+			if (AssaultAmmo <= 0)
+			{
+				// Play Sound?
+				return ReloadedMagazineCapacity;
+			}
+			else if (AssaultAmmo <= MagazineSize)
+			{
+				ReloadedMagazineCapacity = AssaultAmmo;
+				AssaultAmmo = 0;
+				return ReloadedMagazineCapacity;
+			}
+			else
+			{
+				AssaultAmmo -= MagazineSize;
+				return MagazineSize;
+			}
+		}
+	}
+	return ReloadedMagazineCapacity;
+}
+
 // Getter Functions
 //
 //
@@ -325,6 +377,11 @@ float UPlayerStatsComponent::GetThirst() const
 float UPlayerStatsComponent::GetStamina() const
 {
 	return Stamina;
+}
+
+int32 UPlayerStatsComponent::GetAssaultAmmo() const
+{
+	return AssaultAmmo;
 }
 
 

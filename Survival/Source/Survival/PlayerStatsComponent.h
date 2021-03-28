@@ -4,9 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+
 #include "PlayerStatsComponent.generated.h"
 
-
+enum class EAmmoType : uint8;
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SURVIVAL_API UPlayerStatsComponent : public UActorComponent
 {
@@ -55,6 +56,9 @@ protected: // Protected Variables
 	UPROPERTY(EditAnywhere, Category = "Survival|Player Stats", meta = (AllowPrivateAccess = "true"))
 	float MaxStamina;
 
+	UPROPERTY(Replicated)
+	int AssaultAmmo;
+
 	FTimerHandle HungerAndThirstTimer;
 
 	FTimerHandle StaminaRegeneration;
@@ -99,15 +103,18 @@ public:	// Public Functions
 	void AddHealth(float Value);
 	void AddHunger(float Value);
 	void AddThirst(float Value);
+	void AddAmmo(int32 Value, EAmmoType AmmoType);
 	void LowerHealth(float Value);
 	void LowerHunger(float Value);
 	void LowerThirst(float Value);
 	void LowerStamina(float Value);
+	int32 SubtractReloadAmmo(int32 MagazineSize, EAmmoType AmmoType);
 
 	float GetHealth() const;
 	float GetHunger() const;
 	float GetThirst() const;
 	float GetStamina() const;
+	int32 GetAssaultAmmo() const;
 	void ControlSprintingTimer(bool bIsSprinting);
 
 private:
