@@ -113,6 +113,8 @@ protected: // Protected Functions
 
 	void OpenCloseInventory();
 
+	void DropWeapon();
+
 	UFUNCTION()
     void OnRep_OpenCloseInventory();
 
@@ -153,6 +155,11 @@ protected: // Protected Functions
     void Server_Attack(FHitResult HitResult);
 	bool Server_Attack_Validate(FHitResult HitResult);
 	void Server_Attack_Implementation(FHitResult HitResult);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_DropWeapon(class AWeaponBase* WeaponToDrop);
+	bool Server_DropWeapon_Validate(class AWeaponBase* WeaponToDrop);
+	void Server_DropWeapon_Implementation(class AWeaponBase* WeaponToDrop);
 
 	void Die();
 

@@ -86,5 +86,4 @@ public:
 
 	EAmmoType GetAmmoType() const;
 	float GetReloadTime() const;
-
 };

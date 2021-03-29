@@ -17,6 +17,7 @@ AWeaponBase::AWeaponBase()
 
 	LineTracerComp = CreateDefaultSubobject<ULineTracer>(TEXT("Line Tracer"));
 	DefaultWeaponName = FName("");
+	bReplicates = true;
 }
 
 

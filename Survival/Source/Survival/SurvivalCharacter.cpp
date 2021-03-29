@@ -94,6 +94,7 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASurvivalCharacter::Reload);
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ASurvivalCharacter::Attack);
 	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &ASurvivalCharacter::OpenCloseInventory);
+	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &ASurvivalCharacter::DropWeapon);
 
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &ASurvivalCharacter::SetIsAiming);
 	PlayerInputComponent->BindAction("Aiming", IE_Released, this, &ASurvivalCharacter::SetIsNotAiming);
@@ -259,6 +260,20 @@ void ASurvivalCharacter::OpenCloseInventory()
 	}
 }
 
+void ASurvivalCharacter::DropWeapon()
+{
+	if (Weapon)
+	{
+		if(GetLocalRole() < ROLE_Authority)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Call from inside DropWeapon()"));
+			Server_DropWeapon(Weapon);
+			Weapon->Destroy();
+		}
+
+	}
+}
+
 void ASurvivalCharacter::SetIsAiming()
 {
 	if (Weapon)
@@ -362,10 +377,6 @@ void ASurvivalCharacter::OnRep_WeaponInteracted()
 	{
 		Weapon->SetActorEnableCollision(false);
 		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_hand_r"));
-	}
-	else // after drop
-	{
-		
 	}
 }
 
@@ -510,6 +521,47 @@ void ASurvivalCharacter::Server_Attack_Implementation(FHitResult HitResult)
 	}	
 }
 
+bool ASurvivalCharacter::Server_DropWeapon_Validate(AWeaponBase* WeaponToDrop)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToDrop)
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+
+		// IDK WHATS HAPPENING
+		
+		
+		if (!WeaponToDrop) return;
+
+		FVector Location = GetOwner()->GetActorLocation();
+		Location.X += FMath::RandRange(-50.f, 100.f);
+		Location.Y += FMath::RandRange(-50.f, 100.f);
+		FVector EndRay = Location;
+		EndRay.Z -= 2000.f;
+
+		FHitResult HitResult;
+		FCollisionObjectQueryParams ObjQuery;
+		FCollisionQueryParams CollisionParams;
+		CollisionParams.AddIgnoredActor(GetOwner());
+		GetWorld()->LineTraceSingleByObjectType(
+            OUT HitResult,
+            Location,
+            EndRay,
+            ObjQuery,
+            CollisionParams
+        );
+		if (HitResult.ImpactPoint != FVector::ZeroVector)
+		{
+			Location = HitResult.ImpactPoint;
+		} 
+		WeaponToDrop->Destroy();
+		// IT WONT WORK
+		UE_LOG(LogTemp, Warning, TEXT("Destroyed?"));
+	}
+}
 
 // MultiCast Functions
 //
