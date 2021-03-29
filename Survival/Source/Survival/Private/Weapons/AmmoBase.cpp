@@ -17,7 +17,26 @@ AAmmoBase::AAmmoBase()
 void AAmmoBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	SetupAmmoPickup(AmmoType, AmmoAmount);
+}
+
+void AAmmoBase::SetupAmmoPickup(EAmmoType SetAmmoType, int32 Value)
+{
+	AmmoType = SetAmmoType;
+	if (AmmoType == EAmmoType::E_AssaultAmmo)
+	{
+		AmmoMesh->SetStaticMesh(AssaultMesh);
+	}
+	else if (AmmoType == EAmmoType::E_SniperAmmo)
+	{
+		AmmoMesh->SetStaticMesh(SniperMesh);
+	}
+	else if (AmmoType == EAmmoType::E_ShotgunAmmo)
+	{
+		AmmoMesh->SetStaticMesh(ShotgunMesh);
+	}
+	AmmoAmount = Value;
 }
 
 void AAmmoBase::InteractedWith(UPlayerStatsComponent* PlayerStatsComp)

@@ -86,4 +86,6 @@ public:
 
 	EAmmoType GetAmmoType() const;
 	float GetReloadTime() const;
+	FName GetWeaponName() const;
+	int32 GetMagazineAmmoCount() const;
 };

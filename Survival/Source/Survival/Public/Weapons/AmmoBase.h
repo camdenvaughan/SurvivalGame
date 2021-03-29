@@ -9,7 +9,9 @@
 UENUM(BlueprintType)
 enum class EAmmoType : uint8
 {
-	E_AssaultAmmo UMETA(DisplayName = "Assault Ammo")
+	E_AssaultAmmo UMETA(DisplayName = "Assault Ammo"),
+	E_SniperAmmo UMETA(DisplayName = "Sniper"),
+	E_ShotgunAmmo UMETA(DisplayName = "Shotgun Ammo")
 };
 
 UCLASS()
@@ -26,6 +28,15 @@ protected:
 	class UStaticMeshComponent* AmmoMesh;
 
 	UPROPERTY(EditAnywhere)
+	class UStaticMesh* AssaultMesh;
+
+	UPROPERTY(EditAnywhere)
+	class UStaticMesh* SniperMesh;
+
+	UPROPERTY(EditAnywhere)
+	class UStaticMesh* ShotgunMesh;
+
+	UPROPERTY(EditAnywhere)
 	EAmmoType AmmoType;
 
 	UPROPERTY(EditAnywhere)
@@ -34,9 +45,13 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+
+
 public:
 	
 	void InteractedWith(class UPlayerStatsComponent* PlayerStatsComp);
 
+	void SetupAmmoPickup(EAmmoType SetAmmoType, int32 Value);
+	
 	EAmmoType GetAmmoType() const;
 };

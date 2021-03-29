@@ -22,7 +22,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
-#include "Weapons/AmmoBase.h"
+#include "DrawDebugHelpers.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ASurvivalCharacter
@@ -430,8 +430,12 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 			}
 			else if (AWeaponBase* HitWeapon = Cast<AWeaponBase>(Actor))
 			{
-				Weapon = HitWeapon;
+				if (Weapon) return; // switch to add weapon to secondary or swap
+				UE_LOG(LogTemp, Warning, TEXT("Hit Weapon"));
+				Weapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, FVector(0,0, 200.f), FRotator::ZeroRotator);
+				Weapon->SetupWeapon(HitWeapon->GetWeaponName());
 				Weapon->SetOwner(this);
+				HitWeapon->Destroy();
 				OnRep_WeaponInteracted();
 			}
 			else if (AAmmoBase* HitAmmo = Cast <AAmmoBase>(Actor))
@@ -530,22 +534,17 @@ void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToD
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
-
-		// IDK WHATS HAPPENING
-		
-		
 		if (!WeaponToDrop) return;
-
-		FVector Location = GetOwner()->GetActorLocation();
-		Location.X += FMath::RandRange(-50.f, 100.f);
-		Location.Y += FMath::RandRange(-50.f, 100.f);
+		FVector Location = this->GetActorLocation() + (this->GetActorForwardVector() * 50.f);
+		//Location.X += FMath::RandRange(-50.f, 100.f);
+		//Location.Y += FMath::RandRange(-50.f, 100.f);
 		FVector EndRay = Location;
 		EndRay.Z -= 2000.f;
 
 		FHitResult HitResult;
 		FCollisionObjectQueryParams ObjQuery;
 		FCollisionQueryParams CollisionParams;
-		CollisionParams.AddIgnoredActor(GetOwner());
+		CollisionParams.AddIgnoredActor(this);
 		GetWorld()->LineTraceSingleByObjectType(
             OUT HitResult,
             Location,
@@ -553,14 +552,56 @@ void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToD
             ObjQuery,
             CollisionParams
         );
+		DrawDebugLine(GetWorld(), Location, EndRay, FColor::Red,false, 3.0f, 0, 5.f );
 		if (HitResult.ImpactPoint != FVector::ZeroVector)
 		{
 			Location = HitResult.ImpactPoint;
-		} 
+			Location.Z += 2.f;
+		}
+		FRotator Rotation = FRotator(90.f, FMath::RandRange(0.f, 360.f), 0);
+		GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, Location, Rotation);
 		WeaponToDrop->Destroy();
-		// IT WONT WORK
-		UE_LOG(LogTemp, Warning, TEXT("Destroyed?"));
+		WeaponToDrop = nullptr;
 	}
+}
+
+bool ASurvivalCharacter::Server_DropAmmo_Validate(EAmmoType AmmoType, int32 AmountToDrop)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_DropAmmo_Implementation(EAmmoType AmmoType, int32 AmountToDrop)
+{
+	if (PlayerStatsComp->GetAmmo(AmmoType) <= 0) return;
+	FVector Location = this->GetActorLocation() + (this->GetActorForwardVector() * 50.f);
+	FVector EndRay = Location;
+	EndRay.Z -= 2000.f;
+
+	FHitResult HitResult;
+	FCollisionObjectQueryParams ObjQuery;
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(this);
+	GetWorld()->LineTraceSingleByObjectType(
+        OUT HitResult,
+        Location,
+        EndRay,
+        ObjQuery,
+        CollisionParams
+    );
+	DrawDebugLine(GetWorld(), Location, EndRay, FColor::Red,false, 3.0f, 0, 5.f );
+	if (HitResult.ImpactPoint != FVector::ZeroVector)
+	{
+		Location = HitResult.ImpactPoint;
+		Location.Z += 2.f;
+	}
+	FRotator Rotation = FRotator(90.f, FMath::RandRange(0.f, 360.f), 0);
+	if (!AmmoClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No AmmoClass set in BP"));
+		return;
+	}
+	AAmmoBase* SpawnedAmmo = GetWorld()->SpawnActor<AAmmoBase>(AmmoClass, Location, Rotation);
+	SpawnedAmmo->SetupAmmoPickup(AmmoType, AmountToDrop);
 }
 
 // MultiCast Functions
@@ -618,13 +659,17 @@ void ASurvivalCharacter::Die()
 	{
 		Server_InventoryClose();
 		InventoryComp->DropAllInventory();
+		Server_DropWeapon(Weapon);
+		Server_DropAmmo(EAmmoType::E_AssaultAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo));
+		Server_DropAmmo(EAmmoType::E_ShotgunAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_ShotgunAmmo));
+		Server_DropAmmo(EAmmoType::E_SniperAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_SniperAmmo));
 		Multi_Die();
-		ASurvivalGameMode* GM = Cast<ASurvivalGameMode>(GetWorld()->GetAuthGameMode());
-		if (GM)
+		ASurvivalGameMode* SurvivalGameMode = Cast<ASurvivalGameMode>(GetWorld()->GetAuthGameMode());
+		if (SurvivalGameMode)
 		{
-			GM->Respawn(GetController());
+			SurvivalGameMode->Respawn(GetController());
 		}
-		// Start destory timer to remove actor from world
+		// Start destroy timer to remove actor from world
 		GetWorld()->GetTimerManager().SetTimer(DestroyHandle, this, &ASurvivalCharacter::CallDestroy, 10.f, false);
 	}
 }
@@ -647,17 +692,37 @@ bool ASurvivalCharacter::GetPlayerHasWeapon() const
 
 FString ASurvivalCharacter::GetPlayerStats() const
 {
-	FString ReturnString = "Health: "
-	+ FString::SanitizeFloat(PlayerStatsComp->GetHealth())
-	+ ",  Hunger: " 
-	+ FString::SanitizeFloat(PlayerStatsComp->GetHunger()) 
-	+ ",  Thirst: " 
-	+ FString::SanitizeFloat(PlayerStatsComp->GetThirst())
-	+ ",  Stamina: "
-	+ FString::SanitizeFloat(PlayerStatsComp->GetStamina())
-	+ ", Assault Ammo: "
-	+ FString::FromInt(PlayerStatsComp->GetAssaultAmmo());
-	return ReturnString;
+	if (Weapon)
+	{
+		FString ReturnString = "Health: "
+        + FString::SanitizeFloat(PlayerStatsComp->GetHealth())
+        + ",  Hunger: " 
+        + FString::SanitizeFloat(PlayerStatsComp->GetHunger()) 
+        + ",  Thirst: " 
+        + FString::SanitizeFloat(PlayerStatsComp->GetThirst())
+        + ",  Stamina: "
+        + FString::SanitizeFloat(PlayerStatsComp->GetStamina())
+        + ", Assault Ammo: "
+        + FString::FromInt(PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo))
+		+ ", Current Magazine: "
+		+ FString::FromInt(Weapon->GetMagazineAmmoCount());
+		return ReturnString;
+	}
+	else
+	{
+		FString ReturnString = "Health: "
+		+ FString::SanitizeFloat(PlayerStatsComp->GetHealth())
+		+ ",  Hunger: " 
+		+ FString::SanitizeFloat(PlayerStatsComp->GetHunger()) 
+		+ ",  Thirst: " 
+		+ FString::SanitizeFloat(PlayerStatsComp->GetThirst())
+		+ ",  Stamina: "
+		+ FString::SanitizeFloat(PlayerStatsComp->GetStamina())
+		+ ", Assault Ammo: "
+		+ FString::FromInt(PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo));
+		return ReturnString;
+	}
+
 }
 
 float ASurvivalCharacter::GetHealth() const

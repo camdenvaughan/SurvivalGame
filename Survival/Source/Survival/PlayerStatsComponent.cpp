@@ -24,6 +24,8 @@ UPlayerStatsComponent::UPlayerStatsComponent()
 	FullThirstHealingAmount = 2.f;
 	MaxStamina = 100.f;
 	AssaultAmmo = 0.f;
+	SniperAmmo = 0.f;
+	ShotgunAmmo = 0.f;
 }
 
 
@@ -379,9 +381,15 @@ float UPlayerStatsComponent::GetStamina() const
 	return Stamina;
 }
 
-int32 UPlayerStatsComponent::GetAssaultAmmo() const
+int32 UPlayerStatsComponent::GetAmmo(EAmmoType AmmoType) const
 {
-	return AssaultAmmo;
+	if (AmmoType == EAmmoType::E_AssaultAmmo)
+		return AssaultAmmo;
+	else if (AmmoType == EAmmoType::E_SniperAmmo)
+		return SniperAmmo;
+	else if (AmmoType == EAmmoType::E_ShotgunAmmo)
+		return ShotgunAmmo;
+	return 0;
 }
 
 

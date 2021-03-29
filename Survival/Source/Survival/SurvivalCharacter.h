@@ -59,6 +59,9 @@ protected: // Protected Variables
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponInteracted)
 	class AWeaponBase* Weapon;
 
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AAmmoBase> AmmoClass;
+
 	UPROPERTY(ReplicatedUsing = OnRep_SetAiming)
 	bool bIsAiming;
 
@@ -160,6 +163,11 @@ protected: // Protected Functions
 	void Server_DropWeapon(class AWeaponBase* WeaponToDrop);
 	bool Server_DropWeapon_Validate(class AWeaponBase* WeaponToDrop);
 	void Server_DropWeapon_Implementation(class AWeaponBase* WeaponToDrop);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_DropAmmo(EAmmoType AmmoType, int32 AmountToDrop);
+	bool Server_DropAmmo_Validate(EAmmoType AmmoType, int32 AmountToDrop);
+	void Server_DropAmmo_Implementation(EAmmoType AmmoType, int32 AmountToDrop);
 
 	void Die();
 

@@ -184,3 +184,13 @@ float AWeaponBase::GetReloadTime() const
 {
 	return ReloadTime;
 }
+
+FName AWeaponBase::GetWeaponName() const
+{
+	return DefaultWeaponName;
+}
+
+int32 AWeaponBase::GetMagazineAmmoCount() const
+{
+	return MagazineAmmoCount;
+}

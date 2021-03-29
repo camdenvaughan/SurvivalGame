@@ -59,6 +59,12 @@ protected: // Protected Variables
 	UPROPERTY(Replicated)
 	int AssaultAmmo;
 
+	UPROPERTY(Replicated)
+	int SniperAmmo;
+
+	UPROPERTY(Replicated)
+	int ShotgunAmmo;
+
 	FTimerHandle HungerAndThirstTimer;
 
 	FTimerHandle StaminaRegeneration;
@@ -114,7 +120,7 @@ public:	// Public Functions
 	float GetHunger() const;
 	float GetThirst() const;
 	float GetStamina() const;
-	int32 GetAssaultAmmo() const;
+	int32 GetAmmo(EAmmoType AmmoType) const;
 	void ControlSprintingTimer(bool bIsSprinting);
 
 private:
