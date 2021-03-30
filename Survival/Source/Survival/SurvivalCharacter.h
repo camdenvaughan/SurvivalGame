@@ -57,7 +57,12 @@ protected: // Protected Variables
 	TSubclassOf<class AWeaponBase> WeaponClass;
 
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponInteracted)
-	class AWeaponBase* Weapon;
+	class AWeaponBase* ActiveWeapon;
+	UPROPERTY(ReplicatedUsing = OnRep_WeaponDropped)
+	class AWeaponBase* SpawnedWeapon;
+
+	UPROPERTY(Replicated)
+	FName WeaponToSpawnName;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AAmmoBase> AmmoClass;
@@ -67,6 +72,9 @@ protected: // Protected Variables
 
 	UPROPERTY(Replicated)
 	bool bIsReloading;
+
+	UPROPERTY(Replicated)
+	bool bWeaponIsOnBack;
 
 	void SetIsAiming();
 	void SetIsNotAiming();
@@ -118,11 +126,16 @@ protected: // Protected Functions
 
 	void DropWeapon();
 
+	void UnEquip();
+
 	UFUNCTION()
     void OnRep_OpenCloseInventory();
 
 	UFUNCTION()
     void OnRep_WeaponInteracted();
+
+	UFUNCTION()
+	void OnRep_WeaponDropped();
 
 	UFUNCTION()
     void OnRep_SetAiming();
@@ -169,6 +182,11 @@ protected: // Protected Functions
 	bool Server_DropAmmo_Validate(EAmmoType AmmoType, int32 AmountToDrop);
 	void Server_DropAmmo_Implementation(EAmmoType AmmoType, int32 AmountToDrop);
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_UnEquip();
+	bool Server_UnEquip_Validate();
+	void Server_UnEquip_Implementation();
+	
 	void Die();
 
 	UFUNCTION(NetMulticast, Reliable, WithValidation)
@@ -212,3 +230,5 @@ public: // Default Public
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };
+
+

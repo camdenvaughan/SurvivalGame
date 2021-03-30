@@ -29,6 +29,9 @@ struct FWeaponData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere)
 	float ReloadTime;
+
+	UPROPERTY(EditAnywhere)
+	float WeaponDamage;
 };
 
 UCLASS()
@@ -39,8 +42,14 @@ class SURVIVAL_API AWeaponBase : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AWeaponBase();
-protected:
+protected: // Protected Components / Variables
 
+	UPROPERTY(EditAnywhere)
+	class USkeletalMeshComponent* SkeletalMeshComp;
+
+	UPROPERTY()
+	class ULineTracer* LineTracerComp;
+	
 	UPROPERTY(EditAnywhere)
 	class UDataTable* WeaponDataTable;
 	
@@ -49,35 +58,29 @@ protected:
 	UPROPERTY(EditAnywhere)
 	FName DefaultWeaponName;
 
-	UPROPERTY(EditAnywhere)
-	class USkeletalMeshComponent* SkeletalMeshComp;
-
-	EAmmoType AmmoType;
-
 	UPROPERTY(Replicated)
 	int32 MagazineAmmoCount;
+
+	EAmmoType AmmoType;
 
 	int32 MaxMagazineSize;
 
 	float ReloadTime;
 
-	UPROPERTY()
-	class ULineTracer* LineTracerComp;
-/*
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_Reload(int32 Ammo);
-	bool Server_Reload_Validate(int32 Ammo);
-	void Server_Reload_Implementation(int32 Ammo); */
+	float WeaponDamage;
 	
-protected:
-	// Called when the game starts or when spawned
+	UPROPERTY(EditAnywhere)
+	bool bIsDraggedIntoWorld;
+	
+protected: // Protected Functions
+	
 	virtual void BeginPlay() override;
 
 	bool IsValidShot(FHitResult ClientHitResult, FHitResult ServerHitResult) const;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-public:
+public: // Public Functions
 
 	void SetupWeapon(FName WeaponName);
 	FHitResult Fire();
@@ -86,6 +89,9 @@ public:
 
 	EAmmoType GetAmmoType() const;
 	float GetReloadTime() const;
+	float GetWeaponDamage() const;
 	FName GetWeaponName() const;
 	int32 GetMagazineAmmoCount() const;
+
+	void SetWeaponName(FName WeaponName);
 };

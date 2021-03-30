@@ -23,6 +23,7 @@
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ASurvivalCharacter
@@ -67,6 +68,7 @@ ASurvivalCharacter::ASurvivalCharacter()
 
 	bIsSprinting = false;
 	bIsAiming = false;
+	bWeaponIsOnBack = false;
 	static ConstructorHelpers::FClassFinder<UUserWidget> InventoryRef(TEXT("/Game/Blueprints/Hud/WBP_InventoryBase"));
 
 	if (InventoryRef.Class)
@@ -94,8 +96,9 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASurvivalCharacter::Reload);
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ASurvivalCharacter::Attack);
 	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &ASurvivalCharacter::OpenCloseInventory);
-	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &ASurvivalCharacter::DropWeapon);
-
+	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &ASurvivalCharacter::DropWeapon); 
+	PlayerInputComponent->BindAction("UnEquip", IE_Pressed, this, &ASurvivalCharacter::UnEquip);
+	
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &ASurvivalCharacter::SetIsAiming);
 	PlayerInputComponent->BindAction("Aiming", IE_Released, this, &ASurvivalCharacter::SetIsNotAiming);
 	
@@ -124,7 +127,10 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(ASurvivalCharacter, OpenedContainer, COND_OwnerOnly);
-	DOREPLIFETIME(ASurvivalCharacter, Weapon);
+	DOREPLIFETIME(ASurvivalCharacter, ActiveWeapon);
+	DOREPLIFETIME(ASurvivalCharacter, SpawnedWeapon);	
+	DOREPLIFETIME(ASurvivalCharacter, WeaponToSpawnName);
+	DOREPLIFETIME(ASurvivalCharacter, bWeaponIsOnBack);
 	DOREPLIFETIME(ASurvivalCharacter, bIsAiming);
 	DOREPLIFETIME(ASurvivalCharacter, bIsReloading);
 }
@@ -216,17 +222,17 @@ void ASurvivalCharacter::Reload()
 	}
 	else if (GetLocalRole() == ROLE_Authority)
 	{
-		Weapon->Reload(PlayerStatsComp);
+		ActiveWeapon->Reload(PlayerStatsComp);
 		bIsReloading = false;
 	}
 }
 
 void ASurvivalCharacter::Attack() 
 {
-	if (Weapon)
+	if (ActiveWeapon)
 	{
 		Server_CancelReload();
-		Server_Attack(Weapon->Fire());
+		Server_Attack(ActiveWeapon->Fire());
 	}
 }
 
@@ -262,21 +268,33 @@ void ASurvivalCharacter::OpenCloseInventory()
 
 void ASurvivalCharacter::DropWeapon()
 {
-	if (Weapon)
+	if (ActiveWeapon)
 	{
 		if(GetLocalRole() < ROLE_Authority)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Call from inside DropWeapon()"));
-			Server_DropWeapon(Weapon);
-			Weapon->Destroy();
+			Server_DropWeapon(ActiveWeapon);
+			ActiveWeapon->Destroy();
 		}
 
+	}
+	else
+	{
+		Server_DropWeapon(ActiveWeapon);
+	}
+}
+
+void ASurvivalCharacter::UnEquip()
+{
+	if (ActiveWeapon)
+	{
+		Server_UnEquip();
 	}
 }
 
 void ASurvivalCharacter::SetIsAiming()
 {
-	if (Weapon)
+	if (ActiveWeapon)
 	{
 		Server_Aim(true);
 	}
@@ -284,7 +302,7 @@ void ASurvivalCharacter::SetIsAiming()
 
 void ASurvivalCharacter::SetIsNotAiming()
 {
-	if (Weapon)
+	if (ActiveWeapon)
 	{
 		Server_Aim(false);
 	}
@@ -373,10 +391,36 @@ void ASurvivalCharacter::OnRep_OpenCloseInventory()
 
 void ASurvivalCharacter::OnRep_WeaponInteracted()
 {
-	if (Weapon)
+	if (ActiveWeapon)
 	{
-		Weapon->SetActorEnableCollision(false);
-		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_hand_r"));
+		if (WeaponToSpawnName != "")
+		{
+			ActiveWeapon->SetupWeapon(WeaponToSpawnName);
+		}
+		else
+		{
+			ActiveWeapon->SetupWeapon(FName("AR-15"));
+			UE_LOG(LogTemp, Warning, TEXT("Something Went Wrong, Unable to Retrieve Picked Up Weapon Name."))
+		}
+		ActiveWeapon->SetActorEnableCollision(false);
+		ActiveWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_hand_r"));
+	}
+}
+
+void ASurvivalCharacter::OnRep_WeaponDropped()
+{
+	if (SpawnedWeapon)
+	{
+		if (WeaponToSpawnName != "")
+		{
+			SpawnedWeapon->SetupWeapon(WeaponToSpawnName);
+			UE_LOG(LogTemp, Warning, TEXT("Weapon Was spawned with name : %s"), *WeaponToSpawnName.ToString());
+		}
+		else
+		{
+			SpawnedWeapon->SetupWeapon(FName("AR-15"));
+			UE_LOG(LogTemp, Warning, TEXT("Something Went Wrong, Unable to Retrieve Picked Up Weapon Name."))
+		}
 	}
 }
 
@@ -407,10 +451,7 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 		{
 			if (APickupBase* Pickup = Cast<APickupBase>(Actor))
 			{
-				if (InventoryComp->AddItem(Pickup))
-				{
-	
-				}
+				InventoryComp->AddItem(Pickup);
 			}
 			else if (AStorageContainer* Container = Cast<AStorageContainer>(Actor))
 			{
@@ -430,13 +471,18 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 			}
 			else if (AWeaponBase* HitWeapon = Cast<AWeaponBase>(Actor))
 			{
-				if (Weapon) return; // switch to add weapon to secondary or swap
-				UE_LOG(LogTemp, Warning, TEXT("Hit Weapon"));
-				Weapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, FVector(0,0, 200.f), FRotator::ZeroRotator);
-				Weapon->SetupWeapon(HitWeapon->GetWeaponName());
-				Weapon->SetOwner(this);
+				if (ActiveWeapon)
+				{
+					Server_DropWeapon(ActiveWeapon);
+				}
+				WeaponToSpawnName = HitWeapon->GetWeaponName();
+				ActiveWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, FVector(0,0, 200.f), FRotator::ZeroRotator); // Spawn Weapon
+				//ActiveWeapon = HitWeapon;
+				ActiveWeapon->SetOwner(this);
+				ActiveWeapon->SetupWeapon(FName("AK-47"));
 				HitWeapon->Destroy();
 				OnRep_WeaponInteracted();
+				
 			}
 			else if (AAmmoBase* HitAmmo = Cast <AAmmoBase>(Actor))
 			{
@@ -461,13 +507,13 @@ void ASurvivalCharacter::Server_Reload_Implementation()
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		if (Weapon)
+		if (ActiveWeapon)
 		{
-			if (Weapon->GetAmmoType() == EAmmoType::E_AssaultAmmo)
+			if (ActiveWeapon->GetAmmoType() == EAmmoType::E_AssaultAmmo)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Starting Reload"))
 				bIsReloading = true;
-				GetWorld()->GetTimerManager().SetTimer(ReloadHandle, this, &ASurvivalCharacter::Reload, Weapon->GetReloadTime(), false);
+				GetWorld()->GetTimerManager().SetTimer(ReloadHandle, this, &ASurvivalCharacter::Reload, ActiveWeapon->GetReloadTime(), false);
 				//Weapon->Reload(PlayerStatsComp);
 			}
 		}
@@ -481,7 +527,7 @@ bool ASurvivalCharacter::Server_CancelReload_Validate()
 
 void ASurvivalCharacter::Server_CancelReload_Implementation()
 {
-	if (Weapon)
+	if (ActiveWeapon)
 	{
 		if (bIsReloading)
 		{
@@ -519,9 +565,9 @@ bool ASurvivalCharacter::Server_Attack_Validate(FHitResult HitResult)
 
 void ASurvivalCharacter::Server_Attack_Implementation(FHitResult HitResult)
 {
-	if (GetLocalRole() == ROLE_Authority && Weapon)
+	if (GetLocalRole() == ROLE_Authority && ActiveWeapon)
 	{
-		Weapon->Fire(HitResult);
+		ActiveWeapon->Fire(HitResult);
 	}	
 }
 
@@ -533,11 +579,9 @@ bool ASurvivalCharacter::Server_DropWeapon_Validate(AWeaponBase* WeaponToDrop)
 void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToDrop)
 {
 	if (GetLocalRole() == ROLE_Authority)
-	{
-		if (!WeaponToDrop) return;
+	{		
 		FVector Location = this->GetActorLocation() + (this->GetActorForwardVector() * 50.f);
-		//Location.X += FMath::RandRange(-50.f, 100.f);
-		//Location.Y += FMath::RandRange(-50.f, 100.f);
+
 		FVector EndRay = Location;
 		EndRay.Z -= 2000.f;
 
@@ -559,9 +603,14 @@ void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToD
 			Location.Z += 2.f;
 		}
 		FRotator Rotation = FRotator(90.f, FMath::RandRange(0.f, 360.f), 0);
-		GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, Location, Rotation);
-		WeaponToDrop->Destroy();
-		WeaponToDrop = nullptr;
+
+		SpawnedWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, Location, Rotation);
+		WeaponToSpawnName = ActiveWeapon->GetWeaponName();
+
+		ActiveWeapon->Destroy();
+		ActiveWeapon = nullptr;
+		
+		OnRep_WeaponDropped();
 	}
 }
 
@@ -602,6 +651,29 @@ void ASurvivalCharacter::Server_DropAmmo_Implementation(EAmmoType AmmoType, int3
 	}
 	AAmmoBase* SpawnedAmmo = GetWorld()->SpawnActor<AAmmoBase>(AmmoClass, Location, Rotation);
 	SpawnedAmmo->SetupAmmoPickup(AmmoType, AmountToDrop);
+}
+
+bool ASurvivalCharacter::Server_UnEquip_Validate()
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_UnEquip_Implementation()
+{
+	if (ActiveWeapon)
+	{
+		if (!bWeaponIsOnBack)
+		{
+			ActiveWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_spine_3"));
+			bWeaponIsOnBack = true;
+			return;
+		}
+		else
+		{
+			ActiveWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_hand_r"));
+			bWeaponIsOnBack = false;
+		}
+	}
 }
 
 // MultiCast Functions
@@ -659,7 +731,7 @@ void ASurvivalCharacter::Die()
 	{
 		Server_InventoryClose();
 		InventoryComp->DropAllInventory();
-		Server_DropWeapon(Weapon);
+		Server_DropWeapon(ActiveWeapon);
 		Server_DropAmmo(EAmmoType::E_AssaultAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo));
 		Server_DropAmmo(EAmmoType::E_ShotgunAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_ShotgunAmmo));
 		Server_DropAmmo(EAmmoType::E_SniperAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_SniperAmmo));
@@ -684,15 +756,16 @@ void ASurvivalCharacter::CallDestroy()
 //
 bool ASurvivalCharacter::GetPlayerHasWeapon() const
 {
-	if (Weapon)
+	if (ActiveWeapon && !bWeaponIsOnBack)
+	{
 		return true;
-	else
-		return false;
+	}
+	return false;
 }
 
 FString ASurvivalCharacter::GetPlayerStats() const
 {
-	if (Weapon)
+	if (ActiveWeapon)
 	{
 		FString ReturnString = "Health: "
         + FString::SanitizeFloat(PlayerStatsComp->GetHealth())
@@ -705,7 +778,7 @@ FString ASurvivalCharacter::GetPlayerStats() const
         + ", Assault Ammo: "
         + FString::FromInt(PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo))
 		+ ", Current Magazine: "
-		+ FString::FromInt(Weapon->GetMagazineAmmoCount());
+		+ FString::FromInt(ActiveWeapon->GetMagazineAmmoCount());
 		return ReturnString;
 	}
 	else

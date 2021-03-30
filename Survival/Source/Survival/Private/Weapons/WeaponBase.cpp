@@ -16,8 +16,9 @@ AWeaponBase::AWeaponBase()
 	RootComponent = SkeletalMeshComp;
 
 	LineTracerComp = CreateDefaultSubobject<ULineTracer>(TEXT("Line Tracer"));
-	DefaultWeaponName = FName("");
+	DefaultWeaponName = FName("AR-15");
 	bReplicates = true;
+	bIsDraggedIntoWorld = false;
 }
 
 
@@ -26,10 +27,10 @@ AWeaponBase::AWeaponBase()
 void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (DefaultWeaponName != "")
+	if (bIsDraggedIntoWorld)
 	{
 		SetupWeapon(DefaultWeaponName);
+		UE_LOG(LogTemp, Warning, TEXT("After Begin Play"));
 	}
 }
 
@@ -44,16 +45,21 @@ void AWeaponBase::SetupWeapon(FName WeaponName)
 {
 	if (WeaponDataTable)
 	{
-		static const FString PString = FString("AR-15DT");
+		SetWeaponName(WeaponName);
+		static const FString PString = WeaponName.ToString();
 		WeaponData = WeaponDataTable->FindRow<FWeaponData>(WeaponName, PString, true);
 		if (WeaponData)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Inside Setup"));
 			SkeletalMeshComp->SetSkeletalMesh(WeaponData->WeaponMesh);
 			MagazineAmmoCount = WeaponData->MagazineSize;
 			MaxMagazineSize = WeaponData->MagazineSize;
 			AmmoType = WeaponData->AmmoType;
 			ReloadTime = WeaponData->ReloadTime;
+			WeaponDamage = WeaponData->WeaponDamage;
+			return;
 		}
+		return;
 	}
 }
 
@@ -126,52 +132,24 @@ FHitResult AWeaponBase::Fire(FHitResult ClientHitResult)
 			{
 				if (ASurvivalCharacter* Player = Cast<ASurvivalCharacter>(HitActor))
 				{
-					float TestDamage = 10.f;
-					Player->TakeDamage(TestDamage, FDamageEvent(), nullptr, GetOwner());
+					Player->TakeDamage(WeaponDamage, FDamageEvent(), nullptr, GetOwner());
 				}
 			}
-			else
-			{
-				
-			}
-
-		}
-		else
-		{
-			
 		}
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Magazine has %i shots left"), MagazineAmmoCount);
 	return FHitResult();
 }
 
-/*
-bool AWeaponBase::Server_Reload_Validate(int32 Ammo)
-{
-	return true;
-}
-
-void AWeaponBase::Server_Reload_Implementation(int32 Ammo)
+void AWeaponBase::Reload(UPlayerStatsComponent* PlayerStatsComp)
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		Reload();
-	}
-} */
-
-void AWeaponBase::Reload(UPlayerStatsComponent* PlayerStatsComp)
-{
-	if (GetLocalRole() < ROLE_Authority)
-	{
-
-	}
-	else
-	{
-	    if (MagazineAmmoCount != MaxMagazineSize)
-	    {
-		    MagazineAmmoCount += PlayerStatsComp->SubtractReloadAmmo(MaxMagazineSize - MagazineAmmoCount, AmmoType);
-            UE_LOG(LogTemp, Warning, TEXT("Mag Capacity: %i"), MagazineAmmoCount);
-	    }
+		if (MagazineAmmoCount != MaxMagazineSize)
+		{
+			MagazineAmmoCount += PlayerStatsComp->SubtractReloadAmmo(MaxMagazineSize - MagazineAmmoCount, AmmoType);
+			UE_LOG(LogTemp, Warning, TEXT("Mag Capacity: %i"), MagazineAmmoCount);
+		}
 	}
 }
 
@@ -185,6 +163,11 @@ float AWeaponBase::GetReloadTime() const
 	return ReloadTime;
 }
 
+float AWeaponBase::GetWeaponDamage() const
+{
+	return WeaponDamage;
+}
+
 FName AWeaponBase::GetWeaponName() const
 {
 	return DefaultWeaponName;
@@ -193,4 +176,9 @@ FName AWeaponBase::GetWeaponName() const
 int32 AWeaponBase::GetMagazineAmmoCount() const
 {
 	return MagazineAmmoCount;
+}
+
+void AWeaponBase::SetWeaponName(FName WeaponName)
+{
+	DefaultWeaponName = WeaponName;
 }

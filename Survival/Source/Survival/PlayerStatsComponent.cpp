@@ -61,6 +61,8 @@ void UPlayerStatsComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Thirst, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, Stamina, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, AssaultAmmo, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, SniperAmmo, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UPlayerStatsComponent, ShotgunAmmo, COND_OwnerOnly);
 
 }
 
