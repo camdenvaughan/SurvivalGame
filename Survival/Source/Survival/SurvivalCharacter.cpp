@@ -115,6 +115,8 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 }
 
 // Called On Start
+//
+//
 void ASurvivalCharacter::BeginPlay() 
 {
 	Super::BeginPlay();
@@ -127,6 +129,7 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(ASurvivalCharacter, OpenedContainer, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(ASurvivalCharacter, PlayerPitch, COND_SkipOwner);
 	DOREPLIFETIME(ASurvivalCharacter, ActiveWeapon);
 	DOREPLIFETIME(ASurvivalCharacter, SpawnedWeapon);	
 	DOREPLIFETIME(ASurvivalCharacter, WeaponToSpawnName);
@@ -231,8 +234,12 @@ void ASurvivalCharacter::Attack()
 {
 	if (ActiveWeapon)
 	{
+		FVector CamStart = FollowCamera->GetComponentLocation();
+		FVector CamEnd = CamStart + FollowCamera->GetComponentRotation().Vector() * 3500.f;
+		FVector ImpactPoint = LineTraceComp->LineTraceSingle(CamStart, CamEnd).ImpactPoint;
+		
 		Server_CancelReload();
-		Server_Attack(ActiveWeapon->Fire());
+		Server_Attack(ActiveWeapon->Fire(ImpactPoint));
 	}
 }
 
@@ -297,6 +304,8 @@ void ASurvivalCharacter::SetIsAiming()
 	if (ActiveWeapon)
 	{
 		Server_Aim(true);
+		CameraBoom->TargetArmLength = 200.0f;
+		CameraBoom->SocketOffset.Y = 50.f;
 	}
 }
 
@@ -305,6 +314,8 @@ void ASurvivalCharacter::SetIsNotAiming()
 	if (ActiveWeapon)
 	{
 		Server_Aim(false);
+		CameraBoom->TargetArmLength = 400.0f;
+		CameraBoom->SocketOffset.Y = 0.f;
 	}
 }
 
@@ -354,6 +365,11 @@ void ASurvivalCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+
+	FRotator NormalizedRot = (GetControlRotation() - GetActorRotation()).GetNormalized();
+	PlayerPitch = NormalizedRot.Pitch;
+
+	Server_SetPlayerPitch(PlayerPitch);
 }
 
 // OnRep Functions
@@ -427,6 +443,16 @@ void ASurvivalCharacter::OnRep_WeaponDropped()
 void ASurvivalCharacter::OnRep_SetAiming()
 {
 	bUseControllerRotationYaw = bIsAiming;
+}
+
+bool ASurvivalCharacter::Server_SetPlayerPitch_Validate(float Pitch)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Server_SetPlayerPitch_Implementation(float Pitch)
+{
+	PlayerPitch = Pitch;
 }
 
 // Server Functions
@@ -567,7 +593,11 @@ void ASurvivalCharacter::Server_Attack_Implementation(FHitResult HitResult)
 {
 	if (GetLocalRole() == ROLE_Authority && ActiveWeapon)
 	{
-		ActiveWeapon->Fire(HitResult);
+		FVector CamStart = FollowCamera->GetComponentLocation();
+		FVector CamEnd = CamStart + FollowCamera->GetComponentRotation().Vector() * 3500.f;
+		FVector ImpactPoint = LineTraceComp->LineTraceSingle(CamStart, CamEnd).ImpactPoint;
+		
+		ActiveWeapon->Fire(HitResult, ImpactPoint);
 	}	
 }
 
@@ -731,7 +761,10 @@ void ASurvivalCharacter::Die()
 	{
 		Server_InventoryClose();
 		InventoryComp->DropAllInventory();
-		Server_DropWeapon(ActiveWeapon);
+		if (ActiveWeapon)
+		{
+			Server_DropWeapon(ActiveWeapon);			
+		}
 		Server_DropAmmo(EAmmoType::E_AssaultAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo));
 		Server_DropAmmo(EAmmoType::E_ShotgunAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_ShotgunAmmo));
 		Server_DropAmmo(EAmmoType::E_SniperAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_SniperAmmo));
@@ -751,6 +784,11 @@ void ASurvivalCharacter::CallDestroy()
 	Destroy();
 }
 
+float ASurvivalCharacter::GetPlayerPitch() const
+{
+	return PlayerPitch;
+}
+
 // Getter Functions
 //
 //
@@ -761,6 +799,11 @@ bool ASurvivalCharacter::GetPlayerHasWeapon() const
 		return true;
 	}
 	return false;
+}
+
+bool ASurvivalCharacter::GetIsPlayerAiming() const
+{
+	return bIsAiming;
 }
 
 FString ASurvivalCharacter::GetPlayerStats() const

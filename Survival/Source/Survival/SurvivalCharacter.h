@@ -62,6 +62,9 @@ protected: // Protected Variables
 	class AWeaponBase* SpawnedWeapon;
 
 	UPROPERTY(Replicated)
+	float PlayerPitch;
+	
+	UPROPERTY(Replicated)
 	FName WeaponToSpawnName;
 
 	UPROPERTY(EditAnywhere)
@@ -141,6 +144,11 @@ protected: // Protected Functions
     void OnRep_SetAiming();
 
 	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SetPlayerPitch(float Pitch);
+	bool Server_SetPlayerPitch_Validate(float Pitch);
+	void Server_SetPlayerPitch_Implementation(float Pitch);
+
+	UFUNCTION(Server, Reliable, WithValidation)
     void Server_Interact();
 	bool Server_Interact_Validate();
 	void Server_Interact_Implementation();
@@ -196,9 +204,12 @@ protected: // Protected Functions
 
 	void CallDestroy();
 
-
+	UFUNCTION(BlueprintPure)
+	float GetPlayerPitch() const;
 	UFUNCTION(BlueprintPure)
     bool GetPlayerHasWeapon() const;
+	UFUNCTION(BlueprintPure)
+	bool GetIsPlayerAiming() const;
 	UFUNCTION(BlueprintPure)
     FString GetPlayerStats() const;
 	UFUNCTION(BlueprintPure)

@@ -83,8 +83,8 @@ protected: // Protected Functions
 public: // Public Functions
 
 	void SetupWeapon(FName WeaponName);
-	FHitResult Fire();
-	FHitResult Fire(FHitResult ClientHitResult);
+	FHitResult Fire(FVector ImpactPoint);
+	FHitResult Fire(FHitResult ClientHitResult, FVector ImpactPoint);
 	void Reload(class UPlayerStatsComponent* PlayerStatsComp);
 
 	EAmmoType GetAmmoType() const;

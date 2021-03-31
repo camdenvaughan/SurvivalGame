@@ -8,6 +8,7 @@
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 AWeaponBase::AWeaponBase()
@@ -63,7 +64,7 @@ void AWeaponBase::SetupWeapon(FName WeaponName)
 	}
 }
 
-FHitResult AWeaponBase::Fire()
+FHitResult AWeaponBase::Fire(FVector ImpactPoint)
 {
 	if (GetLocalRole() < ROLE_Authority)
 	{
@@ -75,8 +76,7 @@ FHitResult AWeaponBase::Fire()
 		// Play Sound / Muzzle Flash
 		
 		FVector StartLocation = SkeletalMeshComp->GetSocketLocation(FName("s_muzzle"));
-		FRotator Rotation = SkeletalMeshComp->GetSocketRotation(FName("s_muzzle"));
-		FVector EndLocation = StartLocation + Rotation.Vector() * 4000.f;
+		FVector EndLocation = StartLocation + UKismetMathLibrary::FindLookAtRotation(StartLocation, ImpactPoint).Vector() * 3500.f;
 		FHitResult HitResult = LineTracerComp->LineTraceSingle(StartLocation, EndLocation, true);
 		return HitResult;
 	}
@@ -88,28 +88,10 @@ FHitResult AWeaponBase::Fire()
 
 bool AWeaponBase::IsValidShot(FHitResult ClientHitResult, FHitResult ServerHitResult) const
 {
-	if (ServerHitResult.GetActor() == nullptr)
-	{
-		return false;
-	}
-	float ClientStart = ClientHitResult.TraceStart.Size();
-	float ClientEnd = ClientHitResult.TraceEnd.Size();
-	float ServerStart = ServerHitResult.TraceStart.Size();
-	float ServerEnd = ServerHitResult.TraceEnd.Size();
-
-	if (ClientStart >= ServerStart - 15.0f && ClientStart <= ServerStart + 15.0f && ClientEnd >= ServerEnd - 15.0f && ClientEnd <= ServerEnd + 15.0f)
-	{
-		return true;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Shot Was Not Valid! START DIFFERENCE: %f, END DIFFERENCE: %f"), ClientStart - ServerStart, ClientEnd - ServerEnd);
-
-		return false;
-	}
+	return true;
 }
 
-FHitResult AWeaponBase::Fire(FHitResult ClientHitResult)
+FHitResult AWeaponBase::Fire(FHitResult ClientHitResult, FVector ImpactPoint)
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
@@ -123,10 +105,9 @@ FHitResult AWeaponBase::Fire(FHitResult ClientHitResult)
 		
 		if (AActor* HitActor = ClientHitResult.GetActor())
 		{
-
-			FRotator Rotation = SkeletalMeshComp->GetSocketRotation(FName("s_muzzle"));
-			FVector EndLocation = StartLocation + Rotation.Vector() * 4000.f;
+			FVector EndLocation = StartLocation + UKismetMathLibrary::FindLookAtRotation(StartLocation, ImpactPoint).Vector() * 3500.f;
 			FHitResult ServerHitResult = LineTracerComp->LineTraceSingle(StartLocation, EndLocation, true);
+			
 
 			if (IsValidShot(ClientHitResult, ServerHitResult))
 			{
