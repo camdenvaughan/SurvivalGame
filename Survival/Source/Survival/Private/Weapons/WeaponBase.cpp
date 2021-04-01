@@ -9,6 +9,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AWeaponBase::AWeaponBase()
@@ -51,16 +52,13 @@ void AWeaponBase::SetupWeapon(FName WeaponName)
 		WeaponData = WeaponDataTable->FindRow<FWeaponData>(WeaponName, PString, true);
 		if (WeaponData)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Inside Setup"));
 			SkeletalMeshComp->SetSkeletalMesh(WeaponData->WeaponMesh);
 			MagazineAmmoCount = WeaponData->MagazineSize;
 			MaxMagazineSize = WeaponData->MagazineSize;
 			AmmoType = WeaponData->AmmoType;
 			ReloadTime = WeaponData->ReloadTime;
 			WeaponDamage = WeaponData->WeaponDamage;
-			return;
 		}
-		return;
 	}
 }
 
@@ -74,10 +72,21 @@ FHitResult AWeaponBase::Fire(FVector ImpactPoint)
 			return FHitResult();
 		}
 		// Play Sound / Muzzle Flash
+
 		
 		FVector StartLocation = SkeletalMeshComp->GetSocketLocation(FName("s_muzzle"));
-		FVector EndLocation = StartLocation + UKismetMathLibrary::FindLookAtRotation(StartLocation, ImpactPoint).Vector() * 3500.f;
-		FHitResult HitResult = LineTracerComp->LineTraceSingle(StartLocation, EndLocation, true);
+		FVector EndLocation;
+		if (Cast<ASurvivalCharacter>(GetOwner())->GetIsPlayerAiming())
+		{
+			EndLocation = StartLocation + UKismetMathLibrary::FindLookAtRotation(StartLocation, ImpactPoint).Vector() * 3500.f;
+		}
+		else
+		{
+			FRotator Rotation = SkeletalMeshComp->GetSocketRotation(FName("s_muzzle"));
+			EndLocation = EndLocation = StartLocation + Rotation.Vector() * 3500.f;
+		}
+		
+		FHitResult HitResult = LineTracerComp->LineTraceSingle(StartLocation, EndLocation, Cast<ASurvivalCharacter>(GetOwner())->GetIsDebugOn());
 		return HitResult;
 	}
 	else
@@ -102,19 +111,42 @@ FHitResult AWeaponBase::Fire(FHitResult ClientHitResult, FVector ImpactPoint)
 		}
 		--MagazineAmmoCount;
 		FVector StartLocation = SkeletalMeshComp->GetSocketLocation(FName("s_muzzle"));
+		ASurvivalCharacter* Player = Cast<ASurvivalCharacter>(GetOwner());
+		
+		if (Player)
+		{
+			Player->Multi_PlayEmitterAttached(MuzzleFlash, SkeletalMeshComp, FName("s_muzzle"));
+			Player->Multi_PlaySoundAttached(WeaponData->FireSound, SkeletalMeshComp, FName("s_muzzle"));
+		}
 		
 		if (AActor* HitActor = ClientHitResult.GetActor())
 		{
-			FVector EndLocation = StartLocation + UKismetMathLibrary::FindLookAtRotation(StartLocation, ImpactPoint).Vector() * 3500.f;
-			FHitResult ServerHitResult = LineTracerComp->LineTraceSingle(StartLocation, EndLocation, true);
+			FVector EndLocation;
 			
+			if (Player->GetIsPlayerAiming())
+			{
+				EndLocation = StartLocation + UKismetMathLibrary::FindLookAtRotation(StartLocation, ImpactPoint).Vector() * 3500.f;
+			}
+			else
+			{
+				FRotator Rotation = SkeletalMeshComp->GetSocketRotation(FName("s_muzzle"));
+				EndLocation = EndLocation = StartLocation + Rotation.Vector() * 3500.f;
+			}
+			
+			FHitResult ServerHitResult = LineTracerComp->LineTraceSingle(StartLocation, EndLocation);
 
 			if (IsValidShot(ClientHitResult, ServerHitResult))
 			{
-				if (ASurvivalCharacter* Player = Cast<ASurvivalCharacter>(HitActor))
+				if (ASurvivalCharacter* HitPlayer = Cast<ASurvivalCharacter>(HitActor))
 				{
-					Player->TakeDamage(WeaponDamage, FDamageEvent(), nullptr, GetOwner());
+					HitPlayer->TakeDamage(WeaponDamage, FDamageEvent(), nullptr, GetOwner());
 				}
+			}
+			
+			if (Player)
+			{
+				Player->Multi_PlayEmitterAtLocation(ImpactEffect, ServerHitResult.ImpactPoint);
+				Player->Multi_PlaySoundAtLocation(ImpactSound, ServerHitResult.ImpactPoint);
 			}
 		}
 	}
@@ -157,6 +189,22 @@ FName AWeaponBase::GetWeaponName() const
 int32 AWeaponBase::GetMagazineAmmoCount() const
 {
 	return MagazineAmmoCount;
+}
+
+bool AWeaponBase::GetCanReload() const
+{
+	return MagazineAmmoCount < MaxMagazineSize;
+}
+
+FVector AWeaponBase::GetMuzzleLocation() const
+{
+	return SkeletalMeshComp->GetSocketLocation("s_muzzle");
+}
+
+FRotator AWeaponBase::GetMuzzleRotation() const
+{
+	return SkeletalMeshComp->GetSocketRotation("s_muzzle");
+
 }
 
 void AWeaponBase::SetWeaponName(FName WeaponName)

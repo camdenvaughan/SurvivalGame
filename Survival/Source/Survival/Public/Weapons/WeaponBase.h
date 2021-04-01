@@ -19,6 +19,9 @@ struct FWeaponData : public FTableRowBase
 	class USkeletalMesh* WeaponMesh;
 
 	UPROPERTY(EditAnywhere)
+	class USoundBase* FireSound;
+
+	UPROPERTY(EditAnywhere)
 	FString WeaponName;
 	
 	UPROPERTY(EditAnywhere)
@@ -52,6 +55,15 @@ protected: // Protected Components / Variables
 	
 	UPROPERTY(EditAnywhere)
 	class UDataTable* WeaponDataTable;
+
+	UPROPERTY(EditAnywhere)
+	class UParticleSystem* MuzzleFlash;
+	
+	UPROPERTY(EditAnywhere)
+	class UParticleSystem* ImpactEffect;
+
+	UPROPERTY(EditAnywhere)
+	class USoundBase* ImpactSound;
 	
 	FWeaponData* WeaponData;
 
@@ -92,6 +104,9 @@ public: // Public Functions
 	float GetWeaponDamage() const;
 	FName GetWeaponName() const;
 	int32 GetMagazineAmmoCount() const;
+	bool GetCanReload() const;
+	FVector GetMuzzleLocation() const;
+	FRotator GetMuzzleRotation() const;
 
 	void SetWeaponName(FName WeaponName);
 };

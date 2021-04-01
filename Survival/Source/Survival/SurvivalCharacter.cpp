@@ -69,6 +69,7 @@ ASurvivalCharacter::ASurvivalCharacter()
 	bIsSprinting = false;
 	bIsAiming = false;
 	bWeaponIsOnBack = false;
+	bDebugIsOn = false;
 	static ConstructorHelpers::FClassFinder<UUserWidget> InventoryRef(TEXT("/Game/Blueprints/Hud/WBP_InventoryBase"));
 
 	if (InventoryRef.Class)
@@ -98,6 +99,7 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &ASurvivalCharacter::OpenCloseInventory);
 	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &ASurvivalCharacter::DropWeapon); 
 	PlayerInputComponent->BindAction("UnEquip", IE_Pressed, this, &ASurvivalCharacter::UnEquip);
+	PlayerInputComponent->BindAction("ShowDebug", IE_Pressed, this, &ASurvivalCharacter::ToggleDebug);
 	
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &ASurvivalCharacter::SetIsAiming);
 	PlayerInputComponent->BindAction("Aiming", IE_Released, this, &ASurvivalCharacter::SetIsNotAiming);
@@ -132,7 +134,8 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_CONDITION(ASurvivalCharacter, PlayerPitch, COND_SkipOwner);
 	DOREPLIFETIME(ASurvivalCharacter, ActiveWeapon);
 	DOREPLIFETIME(ASurvivalCharacter, SpawnedWeapon);	
-	DOREPLIFETIME(ASurvivalCharacter, WeaponToSpawnName);
+	DOREPLIFETIME_CONDITION(ASurvivalCharacter, DroppedWeaponName, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(ASurvivalCharacter, HoldingWeaponName, COND_OwnerOnly);
 	DOREPLIFETIME(ASurvivalCharacter, bWeaponIsOnBack);
 	DOREPLIFETIME(ASurvivalCharacter, bIsAiming);
 	DOREPLIFETIME(ASurvivalCharacter, bIsReloading);
@@ -147,6 +150,7 @@ void ASurvivalCharacter::TryToJump()
 	{
 		Jump();
 		PlayerStatsComp->LowerStamina(10.0f);
+		Server_CancelReload();
 	}
 }
 
@@ -177,6 +181,7 @@ void ASurvivalCharacter::StartCrouch()
 	if (!GetCharacterMovement()->IsCrouching() && !GetCharacterMovement()->IsFalling())
 	{
 		GetCharacterMovement()->bWantsToCrouch = true;
+		Server_CancelReload();
 	}
 }
 
@@ -194,7 +199,7 @@ void ASurvivalCharacter::Interact()
 	FRotator Rotator;
 	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
 	FVector End = Start + FollowCamera->GetForwardVector() * 600.f;
-	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
+	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, bDebugIsOn);
 
 	if (AActor* Actor = HitResult.GetActor())
 	{
@@ -221,21 +226,37 @@ void ASurvivalCharacter::Reload()
 {
 	if (GetLocalRole() < ROLE_Authority)
 	{
-		Server_Reload();
+		if (ActiveWeapon->GetCanReload() && PlayerStatsComp->GetAmmo(ActiveWeapon->GetAmmoType()) > 0)
+		{
+			Server_Reload();
+		}
 	}
 	else if (GetLocalRole() == ROLE_Authority)
 	{
-		ActiveWeapon->Reload(PlayerStatsComp);
-		bIsReloading = false;
+		if (ActiveWeapon->GetCanReload() && PlayerStatsComp->GetAmmo(ActiveWeapon->GetAmmoType()) > 0)
+		{
+			ActiveWeapon->Reload(PlayerStatsComp);
+			bIsReloading = false;
+		}
 	}
 }
 
 void ASurvivalCharacter::Attack() 
 {
-	if (ActiveWeapon)
+	if (ActiveWeapon && !bWeaponIsOnBack)
 	{
-		FVector CamStart = FollowCamera->GetComponentLocation();
-		FVector CamEnd = CamStart + FollowCamera->GetComponentRotation().Vector() * 3500.f;
+		FVector CamStart;
+		FVector CamEnd;
+		if (bIsAiming)
+		{
+			CamStart = FollowCamera->GetComponentLocation();
+			CamEnd = CamStart + FollowCamera->GetComponentRotation().Vector() * 3500.f;
+		}
+		else
+		{
+			CamStart = ActiveWeapon->GetMuzzleLocation();
+			CamEnd = ActiveWeapon->GetMuzzleRotation().Vector() * 3500.f;
+		}
 		FVector ImpactPoint = LineTraceComp->LineTraceSingle(CamStart, CamEnd).ImpactPoint;
 		
 		Server_CancelReload();
@@ -295,12 +316,22 @@ void ASurvivalCharacter::UnEquip()
 {
 	if (ActiveWeapon)
 	{
+		Server_CancelReload();
 		Server_UnEquip();
 	}
 }
 
+void ASurvivalCharacter::ToggleDebug()
+{
+	if (bDebugIsOn)
+		bDebugIsOn = false;
+	else
+		bDebugIsOn = true;
+}
+
 void ASurvivalCharacter::SetIsAiming()
 {
+	if (bIsReloading) return;
 	if (ActiveWeapon)
 	{
 		Server_Aim(true);
@@ -409,9 +440,9 @@ void ASurvivalCharacter::OnRep_WeaponInteracted()
 {
 	if (ActiveWeapon)
 	{
-		if (WeaponToSpawnName != "")
+		if (HoldingWeaponName != "")
 		{
-			ActiveWeapon->SetupWeapon(WeaponToSpawnName);
+			ActiveWeapon->SetupWeapon(HoldingWeaponName);
 		}
 		else
 		{
@@ -427,15 +458,14 @@ void ASurvivalCharacter::OnRep_WeaponDropped()
 {
 	if (SpawnedWeapon)
 	{
-		if (WeaponToSpawnName != "")
+		if (DroppedWeaponName != "")
 		{
-			SpawnedWeapon->SetupWeapon(WeaponToSpawnName);
-			UE_LOG(LogTemp, Warning, TEXT("Weapon Was spawned with name : %s"), *WeaponToSpawnName.ToString());
+			SpawnedWeapon->SetupWeapon(DroppedWeaponName);
 		}
 		else
 		{
 			SpawnedWeapon->SetupWeapon(FName("AR-15"));
-			UE_LOG(LogTemp, Warning, TEXT("Something Went Wrong, Unable to Retrieve Picked Up Weapon Name."))
+			UE_LOG(LogTemp, Warning, TEXT("Something Went Wrong, Unable to Retrieve Dropped Weapon Name."))
 		}
 	}
 }
@@ -471,7 +501,7 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 		FRotator Rotator;
 		GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
 		FVector End = Start + FollowCamera->GetForwardVector() * 600.f;
-		FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, true);
+		FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, bDebugIsOn);
 
 		if (AActor* Actor = HitResult.GetActor())
 		{
@@ -501,11 +531,9 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 				{
 					Server_DropWeapon(ActiveWeapon);
 				}
-				WeaponToSpawnName = HitWeapon->GetWeaponName();
+				HoldingWeaponName = HitWeapon->GetWeaponName();
 				ActiveWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, FVector(0,0, 200.f), FRotator::ZeroRotator); // Spawn Weapon
-				//ActiveWeapon = HitWeapon;
 				ActiveWeapon->SetOwner(this);
-				ActiveWeapon->SetupWeapon(FName("AK-47"));
 				HitWeapon->Destroy();
 				OnRep_WeaponInteracted();
 				
@@ -598,6 +626,7 @@ void ASurvivalCharacter::Server_Attack_Implementation(FHitResult HitResult)
 		FVector ImpactPoint = LineTraceComp->LineTraceSingle(CamStart, CamEnd).ImpactPoint;
 		
 		ActiveWeapon->Fire(HitResult, ImpactPoint);
+		Cast<APlayerController>(GetController())->ClientStartCameraShake(FireShake);
 	}	
 }
 
@@ -626,7 +655,10 @@ void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToD
             ObjQuery,
             CollisionParams
         );
-		DrawDebugLine(GetWorld(), Location, EndRay, FColor::Red,false, 3.0f, 0, 5.f );
+		
+		if (bDebugIsOn)
+			DrawDebugLine(GetWorld(), Location, EndRay, FColor::Red,false, 3.0f, 0, 5.f );
+		
 		if (HitResult.ImpactPoint != FVector::ZeroVector)
 		{
 			Location = HitResult.ImpactPoint;
@@ -635,7 +667,7 @@ void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToD
 		FRotator Rotation = FRotator(90.f, FMath::RandRange(0.f, 360.f), 0);
 
 		SpawnedWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, Location, Rotation);
-		WeaponToSpawnName = ActiveWeapon->GetWeaponName();
+		DroppedWeaponName = ActiveWeapon->GetWeaponName();
 
 		ActiveWeapon->Destroy();
 		ActiveWeapon = nullptr;
@@ -667,12 +699,16 @@ void ASurvivalCharacter::Server_DropAmmo_Implementation(EAmmoType AmmoType, int3
         ObjQuery,
         CollisionParams
     );
-	DrawDebugLine(GetWorld(), Location, EndRay, FColor::Red,false, 3.0f, 0, 5.f );
+	
+	if (bDebugIsOn)
+		DrawDebugLine(GetWorld(), Location, EndRay, FColor::Red,false, 3.0f, 0, 5.f );
+	
 	if (HitResult.ImpactPoint != FVector::ZeroVector)
 	{
 		Location = HitResult.ImpactPoint;
 		Location.Z += 2.f;
 	}
+	
 	FRotator Rotation = FRotator(90.f, FMath::RandRange(0.f, 360.f), 0);
 	if (!AmmoClass)
 	{
@@ -722,6 +758,46 @@ void ASurvivalCharacter::Multi_Die_Implementation()
 	this->GetMesh()->SetAllBodiesSimulatePhysics(true);
 }
 
+bool ASurvivalCharacter::Multi_PlayEmitterAtLocation_Validate(UParticleSystem* Emitter, FVector Location)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Multi_PlayEmitterAtLocation_Implementation(UParticleSystem* Emitter, FVector Location)
+{
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Emitter, Location);
+}
+
+bool ASurvivalCharacter::Multi_PlayEmitterAttached_Validate(UParticleSystem* Emitter, USceneComponent* Component, FName Socket)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Multi_PlayEmitterAttached_Implementation(UParticleSystem* Emitter, USceneComponent* Component, FName Socket)
+{
+	UGameplayStatics::SpawnEmitterAttached(Emitter, Component, Socket);
+}
+
+bool ASurvivalCharacter::Multi_PlaySoundAtLocation_Validate(USoundBase* Sound, FVector Location)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Multi_PlaySoundAtLocation_Implementation(USoundBase* Sound, FVector Location)
+{
+	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), Sound, Location);
+}
+
+bool ASurvivalCharacter::Multi_PlaySoundAttached_Validate(USoundBase* Sound, USceneComponent* Component, FName Socket)
+{
+	return true;
+}
+
+void ASurvivalCharacter::Multi_PlaySoundAttached_Implementation(USoundBase* Sound, USceneComponent* Component, FName Socket)
+{
+	UGameplayStatics::SpawnSoundAttached(Sound, Component, Socket);
+}
+
 // Helper Functions
 //
 //
@@ -747,11 +823,12 @@ float ASurvivalCharacter::TakeDamage(float Damage, struct FDamageEvent const& Da
 	if (ActualDamage > 0.f)
 	{
 		PlayerStatsComp->LowerHealth(ActualDamage);
+		Cast<APlayerController>(GetController())->ClientStartCameraShake(HitShake);
 		if (PlayerStatsComp->GetHealth() <= 0.0f)
 		{
 			Die();
 		}
-	}	
+	}
 	return ActualDamage;
 }
 
@@ -801,9 +878,19 @@ bool ASurvivalCharacter::GetPlayerHasWeapon() const
 	return false;
 }
 
+bool ASurvivalCharacter::GetIsPlayerReloading() const
+{
+	return bIsReloading;
+}
+
 bool ASurvivalCharacter::GetIsPlayerAiming() const
 {
 	return bIsAiming;
+}
+
+bool ASurvivalCharacter::GetIsDebugOn() const
+{
+	return bDebugIsOn;
 }
 
 FString ASurvivalCharacter::GetPlayerStats() const

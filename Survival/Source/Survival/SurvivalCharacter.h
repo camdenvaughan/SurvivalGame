@@ -44,6 +44,12 @@ protected: // Protected Variables
 	UPROPERTY(VisibleAnywhere)
 	UUserWidget* InventoryWidget;
 
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UMatineeCameraShake> HitShake;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UMatineeCameraShake> FireShake;
+
 	bool bIsSprinting;
 
 	FTimerHandle SprintingHandle;
@@ -65,7 +71,10 @@ protected: // Protected Variables
 	float PlayerPitch;
 	
 	UPROPERTY(Replicated)
-	FName WeaponToSpawnName;
+	FName DroppedWeaponName;
+
+	UPROPERTY(Replicated)
+	FName HoldingWeaponName;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AAmmoBase> AmmoClass;
@@ -78,6 +87,8 @@ protected: // Protected Variables
 
 	UPROPERTY(Replicated)
 	bool bWeaponIsOnBack;
+
+	bool bDebugIsOn;
 
 	void SetIsAiming();
 	void SetIsNotAiming();
@@ -130,6 +141,8 @@ protected: // Protected Functions
 	void DropWeapon();
 
 	void UnEquip();
+
+	void ToggleDebug();
 
 	UFUNCTION()
     void OnRep_OpenCloseInventory();
@@ -201,7 +214,7 @@ protected: // Protected Functions
     void Multi_Die();
 	bool Multi_Die_Validate();
 	void Multi_Die_Implementation();
-
+	
 	void CallDestroy();
 
 	UFUNCTION(BlueprintPure)
@@ -209,7 +222,7 @@ protected: // Protected Functions
 	UFUNCTION(BlueprintPure)
     bool GetPlayerHasWeapon() const;
 	UFUNCTION(BlueprintPure)
-	bool GetIsPlayerAiming() const;
+	bool GetIsPlayerReloading() const;
 	UFUNCTION(BlueprintPure)
     FString GetPlayerStats() const;
 	UFUNCTION(BlueprintPure)
@@ -233,6 +246,31 @@ public: // Public Functions
     class UInventory* GetInventoryComponent() const;
 	UFUNCTION(BlueprintPure)
     class AStorageContainer* GetOpenedContainer() const;
+	UFUNCTION(BlueprintPure)
+	bool GetIsPlayerAiming() const;
+	UFUNCTION(BlueprintPure)
+	bool GetIsDebugOn() const;
+
+
+	UFUNCTION(NetMulticast, Reliable, WithValidation)
+	void Multi_PlayEmitterAtLocation(class UParticleSystem* Emitter, FVector Location);
+	bool Multi_PlayEmitterAtLocation_Validate(class UParticleSystem* Emitter, FVector Location);
+	void Multi_PlayEmitterAtLocation_Implementation(class UParticleSystem* Emitter, FVector Location);
+
+	UFUNCTION(NetMulticast, Reliable, WithValidation)
+    void Multi_PlayEmitterAttached(class UParticleSystem* Emitter, USceneComponent* Component, FName Socket);
+	bool Multi_PlayEmitterAttached_Validate(class UParticleSystem* Emitter, USceneComponent* Component, FName Socket);
+	void Multi_PlayEmitterAttached_Implementation(class UParticleSystem* Emitter, USceneComponent* Component, FName Socket);
+
+	UFUNCTION(NetMulticast, Reliable, WithValidation)
+    void Multi_PlaySoundAtLocation(class USoundBase* Sound, FVector Location);
+	bool Multi_PlaySoundAtLocation_Validate(class USoundBase* Sound, FVector Location);
+	void Multi_PlaySoundAtLocation_Implementation(class USoundBase* Sound, FVector Location);
+
+	UFUNCTION(NetMulticast, Reliable, WithValidation)
+    void Multi_PlaySoundAttached(class USoundBase* Sound, USceneComponent* Component, FName Socket);
+	bool Multi_PlaySoundAttached_Validate(class USoundBase* Sound, USceneComponent* Component, FName Socket);
+	void Multi_PlaySoundAttached_Implementation(class USoundBase* Sound, USceneComponent* Component, FName Socket);
 
 public: // Default Public
 	

@@ -47,7 +47,7 @@ ASpawnPoint* ASurvivalGameMode::GetSpawnPoint()
 
 void ASurvivalGameMode::Spawn(AController* Controller) 
 {
-			if (ASpawnPoint* SpawnPoint = GetSpawnPoint())
+		if (ASpawnPoint* SpawnPoint = GetSpawnPoint())
 		{
 			FVector Location = SpawnPoint->GetActorLocation();
 			FRotator Rotation = SpawnPoint->GetActorRotation();
