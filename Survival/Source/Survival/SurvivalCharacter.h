@@ -44,6 +44,11 @@ protected: // Protected Variables
 	UPROPERTY(VisibleAnywhere)
 	UUserWidget* InventoryWidget;
 
+	TSubclassOf<UUserWidget> PauseWidgetClass;
+
+	UPROPERTY(VisibleAnywhere)
+	UUserWidget* PauseWidget;
+
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UMatineeCameraShake> HitShake;
 
@@ -143,6 +148,9 @@ protected: // Protected Functions
 	void UnEquip();
 
 	void ToggleDebug();
+
+	UFUNCTION(BlueprintCallable)
+	void TogglePause();
 
 	UFUNCTION()
     void OnRep_OpenCloseInventory();

@@ -71,10 +71,15 @@ ASurvivalCharacter::ASurvivalCharacter()
 	bWeaponIsOnBack = false;
 	bDebugIsOn = false;
 	static ConstructorHelpers::FClassFinder<UUserWidget> InventoryRef(TEXT("/Game/Blueprints/Hud/WBP_InventoryBase"));
+	static ConstructorHelpers::FClassFinder<UUserWidget> PauseRef(TEXT("/Game/Blueprints/Hud/WBP_PauseScreen"));
 
 	if (InventoryRef.Class)
 	{
 		InventoryWidgetClass = InventoryRef.Class;
+	}
+	if (PauseRef.Class)
+	{
+		PauseWidgetClass = PauseRef.Class;
 	}
 }
 
@@ -100,6 +105,7 @@ void ASurvivalCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &ASurvivalCharacter::DropWeapon); 
 	PlayerInputComponent->BindAction("UnEquip", IE_Pressed, this, &ASurvivalCharacter::UnEquip);
 	PlayerInputComponent->BindAction("ShowDebug", IE_Pressed, this, &ASurvivalCharacter::ToggleDebug);
+	PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &ASurvivalCharacter::TogglePause);
 	
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &ASurvivalCharacter::SetIsAiming);
 	PlayerInputComponent->BindAction("Aiming", IE_Released, this, &ASurvivalCharacter::SetIsNotAiming);
@@ -327,6 +333,32 @@ void ASurvivalCharacter::ToggleDebug()
 		bDebugIsOn = false;
 	else
 		bDebugIsOn = true;
+}
+
+void ASurvivalCharacter::TogglePause()
+{
+	if (PauseWidget && PauseWidget->IsInViewport())
+	{
+		PauseWidget->RemoveFromViewport();
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			PlayerController->bShowMouseCursor = false;
+			PlayerController->SetInputMode(FInputModeGameOnly());
+		}
+	}
+	else
+	{
+		PauseWidget = CreateWidget<UUserWidget>(GetWorld(), PauseWidgetClass);
+		if (PauseWidget)
+		{
+			PauseWidget->AddToViewport();
+			if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+			{
+				PlayerController->bShowMouseCursor = true;
+				PlayerController->SetInputMode(FInputModeGameAndUI());
+			}
+		}
+	}
 }
 
 void ASurvivalCharacter::SetIsAiming()
@@ -815,6 +847,7 @@ void ASurvivalCharacter::HandleSprinting()
 
 float ASurvivalCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) 
 {
+	if (!Cast<APlayerController>(GetController())) return 0.0f;
 	if (GetLocalRole() < ROLE_Authority || PlayerStatsComp->GetHealth() <= 0.0f)
 		return 0.0f;
 
