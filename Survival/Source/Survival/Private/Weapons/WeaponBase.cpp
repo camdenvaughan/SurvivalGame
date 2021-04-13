@@ -32,7 +32,32 @@ void AWeaponBase::BeginPlay()
 	if (bIsDraggedIntoWorld)
 	{
 		SetupWeapon(DefaultWeaponName);
-		UE_LOG(LogTemp, Warning, TEXT("After Begin Play"));
+		
+		// Change Location to put weapon on ground
+		FVector Location = this->GetActorLocation() + (this->GetActorForwardVector() * 50.f);
+		FVector EndRay = Location;
+		EndRay.Z -= 500.f;
+
+		FHitResult HitResult;
+		FCollisionObjectQueryParams ObjQuery;
+		FCollisionQueryParams CollisionParams;
+		CollisionParams.AddIgnoredActor(this);
+		GetWorld()->LineTraceSingleByObjectType(
+            OUT HitResult,
+            Location,
+            EndRay,
+            ObjQuery,
+            CollisionParams
+        );
+		
+		if (HitResult.ImpactPoint != FVector::ZeroVector)
+		{
+			Location = HitResult.ImpactPoint;
+			Location.Z += 2.f;
+		}
+		FRotator Rotation = FRotator(90.f, GetActorRotation().Yaw, GetActorRotation().Roll);
+		SetActorLocation(Location);
+		SetActorRotation(Rotation);
 	}
 }
 

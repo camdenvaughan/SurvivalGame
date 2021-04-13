@@ -12,20 +12,9 @@
 // Sets default values for this component's properties
 UInventory::UInventory()
 {
-	SetIsReplicated(true);
-
 	InventorySize = 16;
 }
 
-
-// Called when the game starts
-void UInventory::BeginPlay()
-{
-	Super::BeginPlay();
-
-	// ...
-	
-}
 void UInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

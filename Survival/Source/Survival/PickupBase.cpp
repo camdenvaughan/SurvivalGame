@@ -6,7 +6,7 @@
 #include "SurvivalCharacter.h"
 #include "PlayerStatsComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "Engine/Texture2D.h"
+#include "Engine/Texture.h"
 
 // Sets default values
 APickupBase::APickupBase()
@@ -14,7 +14,7 @@ APickupBase::APickupBase()
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh Comp"));
 	RootComponent = MeshComp;
 
-	Icon = CreateDefaultSubobject<UTexture2D>(TEXT("Icon Image"));
+	Icon = CreateDefaultSubobject<UTexture>(TEXT("Icon Image"));
 
 	bReplicates = true;
 	SetReplicateMovement(true);
@@ -76,7 +76,7 @@ void APickupBase::IsInInventory(bool bIsInInventory)
 	}
 }
 
-UTexture2D* APickupBase::GetIcon() 
+UTexture* APickupBase::GetIcon() 
 {
 		return Icon;
 }

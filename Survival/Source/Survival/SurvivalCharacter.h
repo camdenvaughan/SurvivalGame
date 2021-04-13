@@ -95,6 +95,8 @@ protected: // Protected Variables
 
 	bool bDebugIsOn;
 
+	FString InteractText;
+
 	void SetIsAiming();
 	void SetIsNotAiming();
 	
@@ -241,9 +243,17 @@ protected: // Protected Functions
     float GetHunger() const;
 	UFUNCTION(BlueprintPure)
     float GetThirst() const;
+	UFUNCTION(BlueprintPure)
+	int32 GetAmmoForGun() const;
+	UFUNCTION(BlueprintPure)
+	int32 GetMagazineCount() const;
+	UFUNCTION(BLueprintPure)
+	FString GetInteractText() const;
 
 public: // Public Functions
 
+	virtual void Tick(float DeltaSeconds) override;
+	
 	UPROPERTY(EditAnywhere)
 	class UPlayerStatsComponent* PlayerStatsComp;
 
@@ -258,6 +268,7 @@ public: // Public Functions
 	bool GetIsPlayerAiming() const;
 	UFUNCTION(BlueprintPure)
 	bool GetIsDebugOn() const;
+
 
 
 	UFUNCTION(NetMulticast, Reliable, WithValidation)

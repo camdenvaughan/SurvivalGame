@@ -13,6 +13,7 @@ AStorageContainer::AStorageContainer()
 	RootComponent = StaticMesh;
 
 	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory"));
+	InventoryComp->SetIsReplicated(true);
 	bReplicates = true;
 	
 	bIsOpen = false;

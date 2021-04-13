@@ -65,11 +65,13 @@ ASurvivalCharacter::ASurvivalCharacter()
 	PlayerStatsComp = CreateDefaultSubobject<UPlayerStatsComponent>(TEXT("Player Stats Component"));
 	LineTraceComp = CreateDefaultSubobject<ULineTracer>(TEXT("Line Tracer"));
 	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory Component"));
+	InventoryComp->SetIsReplicated(true);
 
 	bIsSprinting = false;
 	bIsAiming = false;
 	bWeaponIsOnBack = false;
 	bDebugIsOn = false;
+	InteractText = "";
 	static ConstructorHelpers::FClassFinder<UUserWidget> InventoryRef(TEXT("/Game/Blueprints/Hud/WBP_InventoryBase"));
 	static ConstructorHelpers::FClassFinder<UUserWidget> PauseRef(TEXT("/Game/Blueprints/Hud/WBP_PauseScreen"));
 
@@ -145,6 +147,54 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ASurvivalCharacter, bWeaponIsOnBack);
 	DOREPLIFETIME(ASurvivalCharacter, bIsAiming);
 	DOREPLIFETIME(ASurvivalCharacter, bIsReloading);
+}
+
+
+void ASurvivalCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!GetController()) return;
+	FVector Start;
+	FRotator Rotator;
+	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
+	FVector End = Start + FollowCamera->GetForwardVector() * 600.f;
+	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, false);
+
+	if (AActor* Actor = HitResult.GetActor())
+	{
+		if (Cast<APickupBase>(Actor))
+		{
+			InteractText = "Press E to Pickup Item";
+		}
+		else if (Cast<AStorageContainer>(Actor))
+		{
+			InteractText = "Press E to Open Container";
+		}
+		else if (Cast<AWeaponBase>(Actor))
+		{
+			if (ActiveWeapon)
+			{
+				InteractText = "Press E to Swap Weapon";
+			}
+			else
+			{
+				InteractText = "Press E to Pickup Weapon";			
+			}
+		}
+		else if (Cast<AAmmoBase>(Actor))
+		{
+			InteractText = "Press E to Pickup Ammo";
+		}
+		else
+		{
+			InteractText = "";
+		}
+	}
+	else
+	{
+		InteractText = "";
+	}
+	
 }
 
 // Input Functions
@@ -980,6 +1030,32 @@ float ASurvivalCharacter::GetThirst() const
 {
 	return PlayerStatsComp->GetThirst() / 100.f;
 }
+
+int32 ASurvivalCharacter::GetAmmoForGun() const
+{
+	if (ActiveWeapon)
+	{
+		return PlayerStatsComp->GetAmmo(ActiveWeapon->GetAmmoType());
+	}
+	else
+		return 0;
+}
+
+int32 ASurvivalCharacter::GetMagazineCount() const
+{
+	if (ActiveWeapon)
+	{
+		return ActiveWeapon->GetMagazineAmmoCount();
+	}
+	else
+		return 0;
+}
+
+FString ASurvivalCharacter::GetInteractText() const
+{
+	return InteractText;
+}
+
 
 AStorageContainer* ASurvivalCharacter::GetOpenedContainer() const
 {

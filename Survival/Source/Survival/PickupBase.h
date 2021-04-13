@@ -31,7 +31,7 @@ protected: // Protected Variables
 	class UStaticMeshComponent* MeshComp;
 
 	UPROPERTY(EditAnywhere)
-	class UTexture2D* Icon;
+	class UTexture* Icon;
 
 	UPROPERTY(EditAnywhere)
 	float IncreaseAmount;
@@ -59,5 +59,5 @@ public:	// Public Functions
 	void IsInInventory(bool bIsInInventory);
 
 	UFUNCTION(BlueprintPure)
-	class UTexture2D* GetIcon();
+	class UTexture* GetIcon();
 };

@@ -27,9 +27,6 @@ protected: // Protected Variables
 
 protected: // Protected Functions
 
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 
 
