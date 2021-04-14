@@ -92,6 +92,9 @@ protected: // Protected Variables
 
 	UPROPERTY(Replicated)
 	bool bWeaponIsOnBack;
+	
+	UPROPERTY(Replicated)
+    bool bIsDead;
 
 	bool bDebugIsOn;
 

@@ -132,6 +132,7 @@ void ASurvivalCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	GetWorld()->GetTimerManager().SetTimer(SprintingHandle, this, &ASurvivalCharacter::HandleSprinting, 1.f, true);
+	bIsDead = false;
 }
 
 void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -147,6 +148,7 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ASurvivalCharacter, bWeaponIsOnBack);
 	DOREPLIFETIME(ASurvivalCharacter, bIsAiming);
 	DOREPLIFETIME(ASurvivalCharacter, bIsReloading);
+	DOREPLIFETIME(ASurvivalCharacter, bIsDead);
 }
 
 
@@ -251,6 +253,7 @@ void ASurvivalCharacter::StopCrouch()
 
 void ASurvivalCharacter::Interact() 
 {
+	if (bIsDead) return;
 	FVector Start;
 	FRotator Rotator;
 	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
@@ -280,6 +283,7 @@ void ASurvivalCharacter::Interact()
 
 void ASurvivalCharacter::Reload()
 {
+	if (bIsDead) return;
 	if (GetLocalRole() < ROLE_Authority)
 	{
 		if (ActiveWeapon->GetCanReload() && PlayerStatsComp->GetAmmo(ActiveWeapon->GetAmmoType()) > 0)
@@ -299,6 +303,7 @@ void ASurvivalCharacter::Reload()
 
 void ASurvivalCharacter::Attack() 
 {
+	if (bIsDead) return;
 	if (ActiveWeapon && !bWeaponIsOnBack)
 	{
 		FVector CamStart;
@@ -352,6 +357,7 @@ void ASurvivalCharacter::OpenCloseInventory()
 
 void ASurvivalCharacter::DropWeapon()
 {
+	if (bIsDead) return;
 	if (ActiveWeapon)
 	{
 		if(GetLocalRole() < ROLE_Authority)
@@ -370,6 +376,7 @@ void ASurvivalCharacter::DropWeapon()
 
 void ASurvivalCharacter::UnEquip()
 {
+	if (bIsDead) return;
 	if (ActiveWeapon)
 	{
 		Server_CancelReload();
@@ -791,7 +798,7 @@ void ASurvivalCharacter::Server_DropAmmo_Implementation(EAmmoType AmmoType, int3
 		Location.Z += 2.f;
 	}
 	
-	FRotator Rotation = FRotator(90.f, FMath::RandRange(0.f, 360.f), 0);
+	FRotator Rotation = FRotator(0, FMath::RandRange(0.f, 360.f), 0);
 	if (!AmmoClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No AmmoClass set in BP"));
@@ -909,6 +916,7 @@ float ASurvivalCharacter::TakeDamage(float Damage, struct FDamageEvent const& Da
 		Cast<APlayerController>(GetController())->ClientStartCameraShake(HitShake);
 		if (PlayerStatsComp->GetHealth() <= 0.0f)
 		{
+			bIsDead = true;
 			Die();
 		}
 	}
