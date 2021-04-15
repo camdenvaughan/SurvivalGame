@@ -33,6 +33,8 @@ protected: // Protected Functions
 
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
+	virtual void Logout(AController* Exiting) override;
+
 public: // Public Functions
 
 	void Respawn(AController* Controller);

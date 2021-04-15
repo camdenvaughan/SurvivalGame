@@ -155,48 +155,7 @@ void ASurvivalCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 void ASurvivalCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (!GetController()) return;
-	FVector Start;
-	FRotator Rotator;
-	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
-	FVector End = Start + FollowCamera->GetForwardVector() * 600.f;
-	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, false);
-
-	if (AActor* Actor = HitResult.GetActor())
-	{
-		if (Cast<APickupBase>(Actor))
-		{
-			InteractText = "Press E to Pickup Item";
-		}
-		else if (Cast<AStorageContainer>(Actor))
-		{
-			InteractText = "Press E to Open Container";
-		}
-		else if (Cast<AWeaponBase>(Actor))
-		{
-			if (ActiveWeapon)
-			{
-				InteractText = "Press E to Swap Weapon";
-			}
-			else
-			{
-				InteractText = "Press E to Pickup Weapon";			
-			}
-		}
-		else if (Cast<AAmmoBase>(Actor))
-		{
-			InteractText = "Press E to Pickup Ammo";
-		}
-		else
-		{
-			InteractText = "";
-		}
-	}
-	else
-	{
-		InteractText = "";
-	}
-	
+	CreateInteractText();
 }
 
 // Input Functions
@@ -363,14 +322,14 @@ void ASurvivalCharacter::DropWeapon()
 		if(GetLocalRole() < ROLE_Authority)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Call from inside DropWeapon()"));
-			Server_DropWeapon(ActiveWeapon);
+			Server_DropWeapon();
 			ActiveWeapon->Destroy();
 		}
 
 	}
 	else
 	{
-		Server_DropWeapon(ActiveWeapon);
+		Server_DropWeapon();
 	}
 }
 
@@ -618,7 +577,7 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 			{
 				if (ActiveWeapon)
 				{
-					Server_DropWeapon(ActiveWeapon);
+					Server_DropWeapon();
 				}
 				HoldingWeaponName = HitWeapon->GetWeaponName();
 				ActiveWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, FVector(0,0, 200.f), FRotator::ZeroRotator); // Spawn Weapon
@@ -719,12 +678,12 @@ void ASurvivalCharacter::Server_Attack_Implementation(FHitResult HitResult)
 	}	
 }
 
-bool ASurvivalCharacter::Server_DropWeapon_Validate(AWeaponBase* WeaponToDrop)
+bool ASurvivalCharacter::Server_DropWeapon_Validate()
 {
 	return true;
 }
 
-void ASurvivalCharacter::Server_DropWeapon_Implementation(AWeaponBase* WeaponToDrop)
+void ASurvivalCharacter::Server_DropWeapon_Implementation()
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{		
@@ -928,14 +887,8 @@ void ASurvivalCharacter::Die()
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		Server_InventoryClose();
-		InventoryComp->DropAllInventory();
-		if (ActiveWeapon)
-		{
-			Server_DropWeapon(ActiveWeapon);			
-		}
-		Server_DropAmmo(EAmmoType::E_AssaultAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo));
-		Server_DropAmmo(EAmmoType::E_ShotgunAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_ShotgunAmmo));
-		Server_DropAmmo(EAmmoType::E_SniperAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_SniperAmmo));
+		DropAllItems();
+
 		Multi_Die();
 		ASurvivalGameMode* SurvivalGameMode = Cast<ASurvivalGameMode>(GetWorld()->GetAuthGameMode());
 		if (SurvivalGameMode)
@@ -950,6 +903,63 @@ void ASurvivalCharacter::Die()
 void ASurvivalCharacter::CallDestroy() 
 {
 	Destroy();
+}
+
+void ASurvivalCharacter::DropAllItems()
+{
+	InventoryComp->DropAllInventory();
+	if (ActiveWeapon)
+	{
+		Server_DropWeapon();			
+	}
+	Server_DropAmmo(EAmmoType::E_AssaultAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_AssaultAmmo));
+	Server_DropAmmo(EAmmoType::E_ShotgunAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_ShotgunAmmo));
+	Server_DropAmmo(EAmmoType::E_SniperAmmo, PlayerStatsComp->GetAmmo(EAmmoType::E_SniperAmmo));
+}
+
+void ASurvivalCharacter::CreateInteractText()
+{
+	if (!GetController()) return;
+	FVector Start;
+	FRotator Rotator;
+	GetController()->GetPlayerViewPoint(OUT Start, OUT Rotator);
+	FVector End = Start + FollowCamera->GetForwardVector() * 600.f;
+	FHitResult HitResult = LineTraceComp->LineTraceSingle(Start, End, false);
+
+	if (AActor* Actor = HitResult.GetActor())
+	{
+		if (Cast<APickupBase>(Actor))
+		{
+			InteractText = "Press E to Pickup Item";
+		}
+		else if (Cast<AStorageContainer>(Actor))
+		{
+			InteractText = "Press E to Open Container";
+		}
+		else if (Cast<AWeaponBase>(Actor))
+		{
+			if (ActiveWeapon)
+			{
+				InteractText = "Press E to Swap Weapon";
+			}
+			else
+			{
+				InteractText = "Press E to Pickup Weapon";			
+			}
+		}
+		else if (Cast<AAmmoBase>(Actor))
+		{
+			InteractText = "Press E to Pickup Ammo";
+		}
+		else
+		{
+			InteractText = "";
+		}
+	}
+	else
+	{
+		InteractText = "";
+	}
 }
 
 float ASurvivalCharacter::GetPlayerPitch() const

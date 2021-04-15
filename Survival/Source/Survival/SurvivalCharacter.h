@@ -144,6 +144,8 @@ protected: // Protected Functions
 
 	void Interact();
 
+	void Attack();
+
 	void Reload();
 
 	void OpenCloseInventory();
@@ -153,6 +155,8 @@ protected: // Protected Functions
 	void UnEquip();
 
 	void ToggleDebug();
+
+	void CreateInteractText();
 
 	UFUNCTION(BlueprintCallable)
 	void TogglePause();
@@ -199,17 +203,15 @@ protected: // Protected Functions
 	bool Server_Aim_Validate(bool bSetShouldAim);
 	void Server_Aim_Implementation(bool bSetShouldAim);
 
-	void Attack();
-
 	UFUNCTION(Server, Reliable, WithValidation)
     void Server_Attack(FHitResult HitResult);
 	bool Server_Attack_Validate(FHitResult HitResult);
 	void Server_Attack_Implementation(FHitResult HitResult);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_DropWeapon(class AWeaponBase* WeaponToDrop);
-	bool Server_DropWeapon_Validate(class AWeaponBase* WeaponToDrop);
-	void Server_DropWeapon_Implementation(class AWeaponBase* WeaponToDrop);
+	void Server_DropWeapon();
+	bool Server_DropWeapon_Validate();
+	void Server_DropWeapon_Implementation();
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_DropAmmo(EAmmoType AmmoType, int32 AmountToDrop);
@@ -220,16 +222,18 @@ protected: // Protected Functions
 	void Server_UnEquip();
 	bool Server_UnEquip_Validate();
 	void Server_UnEquip_Implementation();
-	
-	void Die();
 
 	UFUNCTION(NetMulticast, Reliable, WithValidation)
     void Multi_Die();
 	bool Multi_Die_Validate();
 	void Multi_Die_Implementation();
+
 	
+	void Die();
 	void CallDestroy();
 
+
+	
 	UFUNCTION(BlueprintPure)
 	float GetPlayerPitch() const;
 	UFUNCTION(BlueprintPure)
@@ -262,7 +266,8 @@ public: // Public Functions
 
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
 
-
+	UFUNCTION(BlueprintCallable)
+    void DropAllItems();
 	UFUNCTION(BlueprintPure)
     class UInventory* GetInventoryComponent() const;
 	UFUNCTION(BlueprintPure)

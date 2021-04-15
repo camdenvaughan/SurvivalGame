@@ -76,6 +76,19 @@ void ASurvivalGameMode::PostLogin(APlayerController* NewPlayer)
 		Spawn(Controller);
 	}
 }
+
+void ASurvivalGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+	if (AController* Controller = Cast<APlayerController>(Exiting))
+	{
+		if (ASurvivalCharacter* SurvivalCharacter = Cast<ASurvivalCharacter>(Controller->GetCharacter()))
+		{
+			SurvivalCharacter->DropAllItems();
+		}
+	}
+}
+
 void ASurvivalGameMode::Respawn(AController* Controller) 
 {
 	UE_LOG(LogTemp, Warning, TEXT("Spawn Points: %d"), SpawnPoints.Num());
