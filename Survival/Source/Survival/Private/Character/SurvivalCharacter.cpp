@@ -961,7 +961,7 @@ void ASurvivalCharacter::CreateInteractText()
 		}
 		else if (Cast<AButtonBase>(Actor))
 		{
-			InteractText = "Press E to Reset Test Level";
+			InteractText = "Press E to Reset Test Level (This kicks all players to Lobby)";
 		}
 		else
 		{
