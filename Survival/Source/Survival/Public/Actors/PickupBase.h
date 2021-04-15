@@ -4,23 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Survival/Public/Enums/SurvivalEnums.h"
 #include "PickupBase.generated.h"
-
-
-UENUM(BlueprintType)
-enum class EPickupType : uint8
-{
-	E_Water UMETA(DisplayName = "Water"),
-	E_Food UMETA(DisplayName = "Food"),
-	E_Bandage UMETA(DisplayName = "Bandage")
-};
 
 UCLASS()
 class SURVIVAL_API APickupBase : public AActor
 {
 	GENERATED_BODY()
 	
-public:	// Constuctor
+public:	// Constructor
 
 	// Sets default values for this actor's properties
 	APickupBase();
@@ -50,7 +42,7 @@ protected: // Protected Functions
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:	// Public Functions
 
@@ -59,5 +51,5 @@ public:	// Public Functions
 	void IsInInventory(bool bIsInInventory);
 
 	UFUNCTION(BlueprintPure)
-	class UTexture* GetIcon();
+	class UTexture* GetIcon() const;
 };

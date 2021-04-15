@@ -2,9 +2,9 @@
 
 
 #include "Survival/Public/Weapons/WeaponBase.h"
-#include "Survival/LineTracer.h"
-#include "Survival/SurvivalCharacter.h"
-#include "Survival/PlayerStatsComponent.h"
+#include "Survival/Public/Components/LineTraceComponent.h"
+#include "Survival/Public/Character/SurvivalCharacter.h"
+#include "Survival/Public/Components/PlayerStatsComponent.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -17,7 +17,7 @@ AWeaponBase::AWeaponBase()
 	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
 	RootComponent = SkeletalMeshComp;
 
-	LineTracerComp = CreateDefaultSubobject<ULineTracer>(TEXT("Line Tracer"));
+	LineTracerComp = CreateDefaultSubobject<ULineTraceComponent>(TEXT("Line Tracer"));
 	DefaultWeaponName = FName("AR-15");
 	bReplicates = true;
 	bIsDraggedIntoWorld = false;

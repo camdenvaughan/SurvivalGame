@@ -1,9 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "SurvivalGameMode.h"
-#include "SurvivalCharacter.h"
+#include "Survival/Public/Gamemodes/SurvivalGameMode.h"
+#include "Survival/Public/Character/SurvivalCharacter.h"
+#include "Survival/Public/Actors/SpawnPoint.h"
+
 #include "UObject/ConstructorHelpers.h"
-#include "SpawnPoint.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
 

@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "LineTracer.generated.h"
+#include "LineTraceComponent.generated.h"
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class SURVIVAL_API ULineTracer : public UActorComponent
+class SURVIVAL_API ULineTraceComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	// Constructor
 
 	// Sets default values for this component's properties
-	ULineTracer();
+	ULineTraceComponent();
 
 protected: // Protected Functions
 	// Called when the game starts
@@ -23,6 +23,6 @@ protected: // Protected Functions
 
 public:	// Public Functions
 
-	FHitResult LineTraceSingle(FVector Start, FVector End);
-	FHitResult LineTraceSingle(FVector Start, FVector End, bool ShowDebugLine);	
+	FHitResult LineTraceSingle(FVector Start, FVector End) const;
+	FHitResult LineTraceSingle(FVector Start, FVector End, bool ShowDebugLine) const;	
 };

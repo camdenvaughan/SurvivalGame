@@ -4,15 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Survival/Public/Enums/SurvivalEnums.h"
 #include "AmmoBase.generated.h"
-
-UENUM(BlueprintType)
-enum class EAmmoType : uint8
-{
-	E_AssaultAmmo UMETA(DisplayName = "Assault Ammo"),
-	E_SniperAmmo UMETA(DisplayName = "Sniper"),
-	E_ShotgunAmmo UMETA(DisplayName = "Shotgun Ammo")
-};
 
 UCLASS()
 class SURVIVAL_API AAmmoBase : public AActor

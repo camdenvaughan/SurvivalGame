@@ -1,8 +1,8 @@
 // Copyright Camden Vaughan 2021. All Rights Reserved.
 
 
-#include "PlayerStatsComponent.h"
-#include "SurvivalCharacter.h"
+#include "Survival/Public/Components/PlayerStatsComponent.h"
+#include "Survival/Public/Character/SurvivalCharacter.h"
 #include "Survival/Public/Weapons/AmmoBase.h"
 
 #include "Net/UnrealNetwork.h"

@@ -20,7 +20,7 @@ protected: // Protected Variables
 	UStaticMeshComponent* StaticMesh;
 
 	UPROPERTY(EditAnywhere)
-	class UInventory* InventoryComp;
+	class UInventoryComponent* InventoryComp;
 	
 	UPROPERTY(Replicated)
 	bool bIsOpen;
@@ -39,7 +39,7 @@ protected: // Protected Functions
 
 public:
 	UFUNCTION(BlueprintPure)
-	class UInventory* GetInventoryComponent() const;
+	class UInventoryComponent* GetInventoryComponent() const;
 	bool IsChestOpen() const;
 	void OpenChest(bool bOpened);
 

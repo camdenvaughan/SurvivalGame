@@ -1,7 +1,7 @@
 // Copyright Camden Vaughan 2021. All Rights Reserved.
 
-#include "StorageContainer.h"
-#include "Inventory.h"
+#include "Survival/Public/Actors/StorageContainer.h"
+#include "Survival/Public/Components/InventoryComponent.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -12,7 +12,7 @@ AStorageContainer::AStorageContainer()
 	StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Static Mesh"));
 	RootComponent = StaticMesh;
 
-	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory"));
+	InventoryComp = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	InventoryComp->SetIsReplicated(true);
 	bReplicates = true;
 	
@@ -23,7 +23,6 @@ AStorageContainer::AStorageContainer()
 void AStorageContainer::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AStorageContainer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
@@ -52,7 +51,7 @@ void AStorageContainer::Server_OpenedChest_Implementation(bool bOpened)
 	}
 }
 
-UInventory* AStorageContainer::GetInventoryComponent() const
+UInventoryComponent* AStorageContainer::GetInventoryComponent() const
 {
 	return InventoryComp;
 }

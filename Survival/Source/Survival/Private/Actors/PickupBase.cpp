@@ -1,10 +1,11 @@
 // Copyright Camden Vaughan 2021. All Rights Reserved.
 
 
-#include "PickupBase.h"
+#include "Survival/Public/Actors/PickupBase.h"
+#include "Survival/Public/Character/SurvivalCharacter.h"
+#include "Survival/Public/Components/PlayerStatsComponent.h"
+
 #include "Components/StaticMeshComponent.h"
-#include "SurvivalCharacter.h"
-#include "PlayerStatsComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Texture.h"
 
@@ -17,8 +18,6 @@ APickupBase::APickupBase()
 	Icon = CreateDefaultSubobject<UTexture>(TEXT("Icon Image"));
 
 	bReplicates = true;
-	SetReplicateMovement(true);
-	
 	IncreaseAmount = 30;
 }
 
@@ -26,6 +25,7 @@ APickupBase::APickupBase()
 void APickupBase::BeginPlay()
 {
 	Super::BeginPlay();
+	SetReplicateMovement(true);
 }
 
 void APickupBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
@@ -76,7 +76,7 @@ void APickupBase::IsInInventory(bool bIsInInventory)
 	}
 }
 
-UTexture* APickupBase::GetIcon() 
+UTexture* APickupBase::GetIcon() const
 {
 		return Icon;
 }

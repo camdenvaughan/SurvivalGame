@@ -1,38 +1,42 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory.h"
-#include "PickupBase.h"
-#include "SurvivalCharacter.h"
-#include "StorageContainer.h"
+#include "Survival/Public/Components/InventoryComponent.h"
+#include "Survival/Public/Actors/PickupBase.h"
+#include "Survival/Public/Character/SurvivalCharacter.h"
+#include "Survival/Public/Actors/StorageContainer.h"
 
 #include "Net/UnrealNetwork.h"
 
 #define OUT
 // Sets default values for this component's properties
-UInventory::UInventory()
+UInventoryComponent::UInventoryComponent()
 {
 	InventorySize = 16;
 }
 
-void UInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
+void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 
-	DOREPLIFETIME(UInventory, Items);
+	DOREPLIFETIME(UInventoryComponent, Items);
 }
 
 
-bool UInventory::AddItem(APickupBase* Item) 
+bool UInventoryComponent::AddItem(APickupBase* Item) 
 {
-	Items.Add(Item);
-	Item->IsInInventory(true);
-	return true;
+	if (Item)
+	{
+		Items.Add(Item);
+		Item->IsInInventory(true);
+		return true;
+	}
+return false;
 }
 
 
-void UInventory::DropAllInventory() 
+void UInventoryComponent::DropAllInventory() 
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -44,7 +48,7 @@ void UInventory::DropAllInventory()
 	}
 }
 
-bool UInventory::CheckIfClientHasItem(APickupBase* Item)
+bool UInventoryComponent::CheckIfClientHasItem(APickupBase* Item)
 {
 	for (APickupBase* Pickup : Items)
 	{
@@ -55,7 +59,7 @@ bool UInventory::CheckIfClientHasItem(APickupBase* Item)
 	}
 	return false;
 }
-bool UInventory::RemoveItemFromInventory(APickupBase* Item)
+bool UInventoryComponent::RemoveItemFromInventory(APickupBase* Item)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -73,11 +77,11 @@ bool UInventory::RemoveItemFromInventory(APickupBase* Item)
 	return false;
 }
 
-bool UInventory::Server_DropItem_Validate(APickupBase* Item)
+bool UInventoryComponent::Server_DropItem_Validate(APickupBase* Item)
 {
 	return CheckIfClientHasItem(Item);
 }
-void UInventory::Server_DropItem_Implementation(APickupBase* Item)
+void UInventoryComponent::Server_DropItem_Implementation(APickupBase* Item)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -109,17 +113,17 @@ void UInventory::Server_DropItem_Implementation(APickupBase* Item)
 	}
 }
 
-void UInventory::DropItem(APickupBase* Item) 
+void UInventoryComponent::DropItem(APickupBase* Item) 
 {
 	Server_DropItem(Item);
 }
 
-bool UInventory::Server_UseItem_Validate(APickupBase* Item)
+bool UInventoryComponent::Server_UseItem_Validate(APickupBase* Item)
 {
 	return CheckIfClientHasItem(Item);
 }
 
-void UInventory::Server_UseItem_Implementation(APickupBase* Item)
+void UInventoryComponent::Server_UseItem_Implementation(APickupBase* Item)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -132,12 +136,12 @@ void UInventory::Server_UseItem_Implementation(APickupBase* Item)
 	}
 }
 
-bool UInventory::Server_TransferItem_Validate(APickupBase* Item, AActor* Container)
+bool UInventoryComponent::Server_TransferItem_Validate(APickupBase* Item, AActor* Container)
 {
 	return CheckIfClientHasItem(Item);
 }
 
-void UInventory::Server_TransferItem_Implementation(APickupBase* Item, AActor* ContainerActor)
+void UInventoryComponent::Server_TransferItem_Implementation(APickupBase* Item, AActor* ContainerActor)
 {
 	if (GetOwnerRole() == ROLE_Authority)
 	{
@@ -145,7 +149,7 @@ void UInventory::Server_TransferItem_Implementation(APickupBase* Item, AActor* C
 		{
 			if (AStorageContainer* Container = Cast<AStorageContainer>(ContainerActor))
 			{
-				if (UInventory* CInventory = Container->GetInventoryComponent())
+				if (UInventoryComponent* CInventory = Container->GetInventoryComponent())
 				{
 					CInventory->AddItem(Item);
 					RemoveItemFromInventory(Item);
@@ -153,7 +157,7 @@ void UInventory::Server_TransferItem_Implementation(APickupBase* Item, AActor* C
 			}
 			else if (ASurvivalCharacter* Character = Cast<ASurvivalCharacter>(ContainerActor))
 			{
-				if (UInventory* CInventory = Character->GetInventoryComponent())
+				if (UInventoryComponent* CInventory = Character->GetInventoryComponent())
 				{
 					CInventory->AddItem(Item);
 					RemoveItemFromInventory(Item);
@@ -164,23 +168,23 @@ void UInventory::Server_TransferItem_Implementation(APickupBase* Item, AActor* C
 	}
 }
 
-void UInventory::UseItem(APickupBase* Item)
+void UInventoryComponent::UseItem(APickupBase* Item)
 {
 	Server_UseItem(Item);
 }
 
-void UInventory::TransferItem(APickupBase* Item, AActor* ContainerActor)
+void UInventoryComponent::TransferItem(APickupBase* Item, AActor* ContainerActor)
 {
 	Server_TransferItem(Item, ContainerActor);
 }
 
-bool UInventory::Server_ReceiveItem_Validate(APickupBase* Item)
+bool UInventoryComponent::Server_ReceiveItem_Validate(APickupBase* Item)
 {
 	if (Item) return true;
 	else return false;
 }
 
-void UInventory::Server_ReceiveItem_Implementation(APickupBase* Item)
+void UInventoryComponent::Server_ReceiveItem_Implementation(APickupBase* Item)
 {
 	if (ASurvivalCharacter* SurvivalCharacter = Cast<ASurvivalCharacter>(GetOwner()))
 	{
@@ -192,17 +196,17 @@ void UInventory::Server_ReceiveItem_Implementation(APickupBase* Item)
 }
 
 
-TArray<APickupBase*> UInventory::GetInventoryItems() const
+TArray<APickupBase*> UInventoryComponent::GetInventoryItems() const
 {
 	return Items;
 }
 
-int32 UInventory::GetCurrentInventoryCount() const
+int32 UInventoryComponent::GetCurrentInventoryCount() const
 {
 	return Items.Num() - 1;
 }
 
-int32 UInventory::GetInventorySize() const
+int32 UInventoryComponent::GetInventorySize() const
 {
 	return InventorySize - 1;
 }

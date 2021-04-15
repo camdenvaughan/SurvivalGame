@@ -1,28 +1,25 @@
 // Copyright Camden Vaughan 2021. All Rights Reserved.
 
 
-#include "LineTracer.h"
+#include "Survival/Public/Components/LineTraceComponent.h"
+
 #include "Kismet/KismetSystemLibrary.h"
 #include "DrawDebugHelpers.h"
 
 #define OUT
 // Sets default values for this component's properties
-ULineTracer::ULineTracer()
+ULineTraceComponent::ULineTraceComponent()
 {
-
 }
 
 
 // Called when the game starts
-void ULineTracer::BeginPlay()
+void ULineTraceComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
-	
 }
 
-FHitResult ULineTracer::LineTraceSingle(FVector Start, FVector End) 
+FHitResult ULineTraceComponent::LineTraceSingle(FVector Start, FVector End) const
 {
 	FHitResult HitResult;
 	FCollisionObjectQueryParams CollisionObjectParams;
@@ -42,10 +39,10 @@ FHitResult ULineTracer::LineTraceSingle(FVector Start, FVector End)
 	return HitResult;
 }
 
-FHitResult ULineTracer::LineTraceSingle(FVector Start, FVector End, bool ShowDebugLine) 
+FHitResult ULineTraceComponent::LineTraceSingle(FVector Start, FVector End, bool ShowDebugLine) const
 {
 
-	FHitResult HitResult = LineTraceSingle(Start, End);
+	FHitResult const HitResult = LineTraceSingle(Start, End);
 	if (ShowDebugLine)
 	{
 		DrawDebugLine(

@@ -2,8 +2,9 @@
 
 
 #include "Survival/Public/Weapons/AmmoBase.h"
+#include "Survival/Public/Components/PlayerStatsComponent.h"
+
 #include "Components/StaticMeshComponent.h"
-#include "Survival/PlayerStatsComponent.h"
 
 // Sets default values
 AAmmoBase::AAmmoBase()

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Public/Weapons/WeaponBase.h"
+#include "Survival/Public/Weapons/WeaponBase.h"
 
 #include "SurvivalCharacter.generated.h"
 
@@ -34,10 +34,10 @@ public: // Default Public
 protected: // Protected Variables
 
 	UPROPERTY(VisibleAnywhere)
-	class ULineTracer* LineTraceComp;
+	class ULineTraceComponent* LineTraceComp;
 
 	UPROPERTY(EditAnywhere)
-	class UInventory* InventoryComp;
+	class UInventoryComponent* InventoryComp;
 
 	TSubclassOf<class UUserWidget> InventoryWidgetClass;
 
@@ -269,7 +269,7 @@ public: // Public Functions
 	UFUNCTION(BlueprintCallable)
     void DropAllItems();
 	UFUNCTION(BlueprintPure)
-    class UInventory* GetInventoryComponent() const;
+    class UInventoryComponent* GetInventoryComponent() const;
 	UFUNCTION(BlueprintPure)
     class AStorageContainer* GetOpenedContainer() const;
 	UFUNCTION(BlueprintPure)

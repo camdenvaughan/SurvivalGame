@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "SurvivalCharacter.h"
+#include "Survival/Public/Character/SurvivalCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -8,12 +8,12 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 
-#include "SurvivalGameMode.h"
-#include "PlayerStatsComponent.h"
-#include "LineTracer.h"
-#include "PickupBase.h"
-#include "Inventory.h"
-#include "StorageContainer.h"
+#include "Survival/Public/Gamemodes/SurvivalGameMode.h"
+#include "Survival/Public/Components/PlayerStatsComponent.h"
+#include "Survival/Public/Components/LineTraceComponent.h"
+#include "Survival/Public/Actors/PickupBase.h"
+#include "Survival/Public/Components/InventoryComponent.h"
+#include "Survival/Public/Actors/StorageContainer.h"
 #include "Survival/Public/Weapons/WeaponBase.h"
 #include "Survival/Public/Weapons/AmmoBase.h"
 
@@ -23,6 +23,7 @@
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
+#include "Actors/ButtonBase.h"
 #include "Kismet/GameplayStatics.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -63,8 +64,8 @@ ASurvivalCharacter::ASurvivalCharacter()
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 
 	PlayerStatsComp = CreateDefaultSubobject<UPlayerStatsComponent>(TEXT("Player Stats Component"));
-	LineTraceComp = CreateDefaultSubobject<ULineTracer>(TEXT("Line Tracer"));
-	InventoryComp = CreateDefaultSubobject<UInventory>(TEXT("Inventory Component"));
+	LineTraceComp = CreateDefaultSubobject<ULineTraceComponent>(TEXT("Line Tracer"));
+	InventoryComp = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory Component"));
 	InventoryComp->SetIsReplicated(true);
 
 	bIsSprinting = false;
@@ -237,6 +238,10 @@ void ASurvivalCharacter::Interact()
 		{
 			Server_Interact();
 		}
+		else if (Cast<AButtonBase>(Actor))
+		{
+			Server_Interact();
+		}
 	}
 }
 
@@ -325,11 +330,10 @@ void ASurvivalCharacter::DropWeapon()
 			Server_DropWeapon();
 			ActiveWeapon->Destroy();
 		}
-
-	}
-	else
-	{
-		Server_DropWeapon();
+		else
+		{
+			Server_DropWeapon();
+		}
 	}
 }
 
@@ -588,8 +592,11 @@ void ASurvivalCharacter::Server_Interact_Implementation()
 			}
 			else if (AAmmoBase* HitAmmo = Cast <AAmmoBase>(Actor))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Server Hit Ammo"));
 				HitAmmo->InteractedWith(PlayerStatsComp);
+			}
+			else if (AButtonBase* Button = Cast<AButtonBase>(Actor))
+			{
+				Button->Use();
 			}
 		}
 	}	
@@ -686,7 +693,8 @@ bool ASurvivalCharacter::Server_DropWeapon_Validate()
 void ASurvivalCharacter::Server_DropWeapon_Implementation()
 {
 	if (GetLocalRole() == ROLE_Authority)
-	{		
+	{
+		if (!ActiveWeapon) return;
 		FVector Location = this->GetActorLocation() + (this->GetActorForwardVector() * 50.f);
 
 		FVector EndRay = Location;
@@ -951,6 +959,10 @@ void ASurvivalCharacter::CreateInteractText()
 		{
 			InteractText = "Press E to Pickup Ammo";
 		}
+		else if (Cast<AButtonBase>(Actor))
+		{
+			InteractText = "Press E to Reset Test Level";
+		}
 		else
 		{
 			InteractText = "";
@@ -1080,7 +1092,7 @@ AStorageContainer* ASurvivalCharacter::GetOpenedContainer() const
 	return OpenedContainer;
 }
 
-UInventory* ASurvivalCharacter::GetInventoryComponent() const
+UInventoryComponent* ASurvivalCharacter::GetInventoryComponent() const
 {
 	return InventoryComp;
 }

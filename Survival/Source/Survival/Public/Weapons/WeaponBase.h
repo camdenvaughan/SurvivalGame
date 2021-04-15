@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 
-
 #include "Engine/DataTable.h"
 #include "GameFramework/Actor.h"
+#include "Survival/Public/Enums/SurvivalEnums.h"
 #include "WeaponBase.generated.h"
 
 enum class EAmmoType : uint8;
@@ -51,7 +51,7 @@ protected: // Protected Components / Variables
 	class USkeletalMeshComponent* SkeletalMeshComp;
 
 	UPROPERTY()
-	class ULineTracer* LineTracerComp;
+	class ULineTraceComponent* LineTracerComp;
 	
 	UPROPERTY(EditAnywhere)
 	class UDataTable* WeaponDataTable;
